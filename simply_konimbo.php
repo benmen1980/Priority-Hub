@@ -3,7 +3,7 @@
 Plugin Name: Simply Konimbo
 */
 
-class Konimbo  {
+class Konimbo extends \PriorityAPI\API{
 	private static $instance; // api instance
 	public static function instance()
 	{
@@ -13,7 +13,8 @@ class Konimbo  {
 
 		return static::$instance;
 	}
-	private function __construct() {
+	public function __construct() {
+		parent::__construct();
 		add_action( 'admin_menu',array( $this,'add_menu_items'));
 		add_action( 'init', array($this,'custom_post_type'), 0 );
 		add_action('init', array($this,'register_tag'));
@@ -23,9 +24,9 @@ class Konimbo  {
 		return is_admin() ? $this->backend(): $this->frontend();
 	}
 	// Konimbo API
-	function simply_post_order_to_priority( $order ) {
+	function simply_post_order_to_priority( $order,$user ) {
 
-		$cust_number = '999'; // need to fetch the cusotmer from users Konimbo Panel
+		$cust_number = get_user_meta( $user->ID, 'walk_in_customer_number' ,true);
 		$data        = [
 			'CUSTNAME' => $cust_number,
 			'CDES'     => $order->name,
@@ -69,7 +70,7 @@ class Konimbo  {
 		foreach ( $order->items as $item ) {
 			$partname = $item->code;
 			// debug
-			$partname                     = '000';
+			//$partname                     = '000';
 			$data['ORDERITEMS_SUBFORM'][] = [
 				'PARTNAME' => $partname,
 				'TQUANT'   => (int) $item->quantity,
@@ -124,10 +125,10 @@ class Konimbo  {
 		];
 
 		// make request
-		PriorityAPI\API::instance()->run();
+		//PriorityAPI\API::instance()->run();
 		// make request
 		//echo json_encode($data);
-		$response = PriorityAPI\API::instance()->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], true );
+		$response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
 		if ( $response['code'] <= 201 ) {
 			$body_array = json_decode( $response["body"], true );
 			// Create post object
@@ -140,34 +141,31 @@ class Konimbo  {
 				'tags_input' => array( $body_array["ORDNAME"])
 			);
 
-// Insert the post into the database
+			// Insert the post into the database
 			wp_insert_post( $my_post );
+			// update Konimbo status and Priority sales order number
 		}
+		$subject = 'Priority API error '.$order->id;
+		$emails = [];
 		if ( $response['code'] >= 400 ) {
 			$body_array = json_decode( $response["body"], true );
-			//$ord_status = $body_array["ORDSTATUSDES"];
-			//$ord_number = $body_array["ORDNAME"];
-
+			$error = $response["body"];
+			$this->sendEmailError($emails, $subject , $error );
 		}
 		if ( ! $response['status'] || $response['code'] >= 400 ) {
-			/**
-			 * t149
-			 */
-			//$this->sendEmailError(
-			//	$this->option('email_error_sync_orders_web'),
-			//	'Error Sync Orders',
-			//	$response['body']
-			//);
+			$error = $response["body"];
+			$this->sendEmailError($emails, $subject , $error );
 		}
+
 
 		// add timestamp
 		return $response;
 	}
-	function simply_konimbo_process_orders( $orders ) {
+	function simply_konimbo_process_orders( $orders,$user ) {
 		$index = 0;
 		foreach ( $orders as $order ) {
 			echo '<br> Starting process order ' . $order->id . '<br>';
-			$response = $this->simply_post_order_to_priority( $order );
+			$response = $this->simply_post_order_to_priority( $order,$user );
 			echo $response['message'] . '<br>';
 			$index ++;
 		}
@@ -175,8 +173,8 @@ class Konimbo  {
 	}
 	function simply_konimbo($user) {
 		echo '<br><br>Starting Konimbo<br>';
-		$token          = get_user_meta( $user, 'token' )[0];
-		$last_sync_time = get_user_meta( $user, 'last_sync_time' );
+		$token          = get_user_meta( $user->ID, 'token' ,true);
+		$last_sync_time = get_user_meta( $user->ID, 'last_sync_time',true );
 		if(empty($token)){
 			$token            = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
 		}
@@ -186,11 +184,11 @@ class Konimbo  {
         //$orders_limit     = '&created_at_min=2020-06-15T00:00:00Z';
 		$orders_limit     = '&created_at_min='.$last_sync_time;
 		$new_sync_time  = date( "c" );
-		update_user_meta($user,'last_sync_time',$new_sync_time);
+		update_user_meta($user->ID,'last_sync_time',$new_sync_time);
 		$filter_status    = '&payment_status=שולם';
 		$konimbo_url      = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
 		// debug url
-		//$konimbo_url = 'https://api.konimbo.co.il/v1/orders/2586980?token=53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
+		$konimbo_url = 'https://api.konimbo.co.il/v1/orders/1679803?token=53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
 		$method = 'GET';
 		$args   = [
 			'headers' => [],
@@ -206,28 +204,34 @@ class Konimbo  {
 
 		$response = wp_remote_request( $konimbo_url, $args );
 
+		$emails = [$user->user_email];
+		$subject = 'Konimbo Error for user '. get_user_meta($user->ID,'nickname',true);
+
 		if ( is_wp_error( $response ) ) {
 			echo 'internal server error<br>';
 			echo $response->get_error_message();
+
+
+			$error = $response->get_error_message();
+			$this->sendEmailError($emails, $subject , $error );
 		} else {
 			$respone_code    = (int) wp_remote_retrieve_response_code( $response );
-			$respone_message = $response['response']['message'];
+			$respone_message = $response['body'];
 			If ( $respone_code <= 200 ) {
 				echo 'Konimbo ok!!!<br>';
-				$orders = json_decode( $response['body'] );
-				$this->simply_konimbo_process_orders( $orders );
+				$orders = [json_decode( $response['body'])];
+				$this->simply_konimbo_process_orders( $orders,$user );
 			} elseif ( $respone_code >= 400 && $respone_code <= 499 ) {
 				echo $respone_code . ' error occures <br>';
 				echo $respone_message . '<br>';
+				echo $konimbo_url .'<br>';
+				if($respone_code != 404){
+					$error = $respone_message.'<br>'.$konimbo_url;
+					PriorityAPI\API::instance()->sendEmailError($emails, $subject , $error );
+				}
+
 			}
 		}
-
-
-		//var_dump(json_decode($response['body']));
-		//PriorityAPI\API::instance()->run();
-		// make request
-		//$response = PriorityAPI\API::instance()->makeRequest('POST', 'ORDERS', ['body' => json_encode($data)],true);
-
 
 	}
 	function konimbo_process_all_users(){
@@ -244,9 +248,9 @@ class Konimbo  {
 		// The User Loop
 		if ( ! empty( $user_query->results ) ) {
 			foreach ( $user_query->results as $user ) {
-				$activate_sync = get_user_meta( 1, 'activate_sync' )[0];
+				$activate_sync = get_user_meta( $user->ID, 'activate_sync' )[0];
 				if ( $activate_sync ) {
-					echo '<br>Start sync user '.get_user_meta($user,'username').'<br>';
+					echo '<br>Start sync  '.get_user_meta($user->ID,'nickname',true).'<br>';
 					ini_set('MAX_EXECUTION_TIME', 0);
 					$this->simply_konimbo($user);
 				}
@@ -259,7 +263,58 @@ class Konimbo  {
 
 		//var_dump(get_user_meta(1));
 	}
-	// frintend
+	public function makeRequest($method, $url_addition = null,$options = [], $user)
+	{
+		$args = [
+			'headers' => [
+				'Authorization' => 'Basic ' . base64_encode($this->option('username') . ':' . $this->option('password')),
+				'Content-Type'  => 'application/json',
+				'X-App-Id' => get_user_meta( $user->ID, 'x-app-id' ,true),
+				'X-App-Key' => get_user_meta( $user->ID, 'x-app-key' ,true)
+			],
+			'timeout'   => 45,
+			'method'    => strtoupper($method),
+			'sslverify' => get_user_meta( $user->ID, 'ssl_verify' ,true)
+		];
+
+
+		if ( ! empty($options)) {
+			$args = array_merge($args, $options);
+		}
+
+		$url = sprintf('https://%s/odata/Priority/%s/%s/%s',
+			get_user_meta( $user->ID, 'url' ,true),
+			get_user_meta( $user->ID, 'application' ,true),
+			get_user_meta( $user->ID, 'environment_name' ,true),
+			is_null($url_addition) ? '' : stripslashes($url_addition)
+		);
+
+		$response = wp_remote_request($url, $args);
+
+		$response_code    = wp_remote_retrieve_response_code($response);
+		$response_message = wp_remote_retrieve_response_message($response);
+		$response_body    = wp_remote_retrieve_body($response);
+
+		if ($response_code >= 400) {
+			$response_body = strip_tags($response_body);
+		}
+
+		// decode hebrew
+		$response_body_decoded = $this->decodeHebrew($response_body);
+
+
+		return [
+			'url'      => $url,
+			'args'     => $args,
+			'method'   => strtoupper($method),
+			'body'     => $response_body_decoded,
+			'body_raw' => $response_body,
+			'code'     => $response_code,
+			'status'   => ($response_code >= 200 && $response_code < 300) ? 1 : 0,
+			'message'  => ($response_message ? $response_message : $response->get_error_message())
+		];
+	}
+	// frontend
 	function frontend(){
 
 
@@ -335,6 +390,7 @@ class Konimbo  {
 		echo( '<br><br>This plugin is Konimbo<br>' );
 		if ( isset( $_GET['post_all'] ) ) {
 			$this->konimbo_process_all_users();
+
 		}
 	}
 	// admin menu
@@ -348,5 +404,15 @@ class Konimbo  {
 add_action('plugins_loaded', function(){
 	Konimbo::instance()->run();
 	});
+
+
+
+
+
+
+
+
+
+
 
 
