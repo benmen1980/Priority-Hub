@@ -3,8 +3,10 @@
 Plugin Name: Simply Konimbo
 */
 
-class Konimbo extends \PriorityAPI\API{
+class Priority_Hub extends \PriorityAPI\API{
 	private static $instance; // api instance
+	// constants
+	const DEBUG = true;
 	public static function instance()
 	{
 		if (is_null(static::$instance)) {
@@ -24,7 +26,7 @@ class Konimbo extends \PriorityAPI\API{
 		return is_admin() ? $this->backend(): $this->frontend();
 	}
 	// Konimbo API
-	function simply_post_order_to_priority( $order,$user ) {
+	function post_order_to_priority( $order,$user ) {
 
 		$cust_number = get_user_meta( $user->ID, 'walk_in_customer_number' ,true);
 		$data        = [
@@ -69,8 +71,17 @@ class Konimbo extends \PriorityAPI\API{
 		// get ordered items
 		foreach ( $order->items as $item ) {
 			$partname = $item->code;
+			// check variation
+			$variations = $order->upgrades;
+			foreach ($variations as $variation){
+				if($item->line_item_id == $variation->line_item_id){
+					$partname = $variation->inventory_code;
+				}
+			}
 			// debug
-			//$partname                     = '000';
+			if(SELF::DEBUG){
+				$partname                     = '000';
+			}
 			$data['ORDERITEMS_SUBFORM'][] = [
 				'PARTNAME' => $partname,
 				'TQUANT'   => (int) $item->quantity,
@@ -105,9 +116,18 @@ class Konimbo extends \PriorityAPI\API{
 		}
 		*/
 		// payment info
-		$payment_code               = '5'; // need to fetch code from dictionary
 		$payment                    = $order->payments;
 		$credit_cart_payments       = $order->credit_card_details;
+
+		$konimbo_cards_dictionary = array(
+			1 => 1,  // Isracard
+			2 => 5,  // Visa
+			3 => 3,  // Diners
+			4 => 4,  // Amex
+			5 => 5,  // JCB
+			6 => 6   // Leumi Card
+		);
+		$payment_code = $konimbo_cards_dictionary[$credit_cart_payments->issued_company_number];
 		$data['PAYMENTDEF_SUBFORM'] = [
 			'PAYMENTCODE' => $payment_code,
 			'QPRICE'      => (float) $payment->single_payment,
@@ -129,7 +149,7 @@ class Konimbo extends \PriorityAPI\API{
 		// make request
 		//echo json_encode($data);
 		$response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
-		if ( $response['code'] <= 201 ) {
+		if ( $response['code'] <= 201  && $response['code'] >= 200 ) {
 			$body_array = json_decode( $response["body"], true );
 			// Create post object
 			$my_post = array(
@@ -137,7 +157,7 @@ class Konimbo extends \PriorityAPI\API{
 				'post_title'    => $order->name.' '.$order->id,
 				'post_content'  => json_encode($data),
 				'post_status'   => 'publish',
-				'post_author'   => 1,
+				'post_author'   => $user->ID,
 				'tags_input' => array( $body_array["ORDNAME"])
 			);
 
@@ -161,34 +181,40 @@ class Konimbo extends \PriorityAPI\API{
 		// add timestamp
 		return $response;
 	}
-	function simply_konimbo_process_orders( $orders,$user ) {
+	function process_orders( $orders,$user ) {
 		$index = 0;
 		foreach ( $orders as $order ) {
-			echo '<br> Starting process order ' . $order->id . '<br>';
-			$response = $this->simply_post_order_to_priority( $order,$user );
+			echo 'Starting process order ' . $order->id . '<br>';
+			$response = $this->post_order_to_priority( $order,$user );
 			echo $response['message'] . '<br>';
 			$index ++;
 		}
-		echo 'Complete to sync ' . $index . ' orders';
+		echo 'Complete to sync ' . $index . ' orders<br>';
 	}
-	function simply_konimbo($user) {
-		echo '<br><br>Starting Konimbo<br>';
+	function get_orders($user) {
+		echo 'Starting Konimbo<br>';
 		$token          = get_user_meta( $user->ID, 'token' ,true);
+		/*if(empty($token)){
+			$token            = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
+		}*/
 		$last_sync_time = get_user_meta( $user->ID, 'last_sync_time',true );
 		if(empty($token)){
 			$token            = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
 		}
 		$konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
-		$order_id         = '2586980';
 		$order_id         = '';
         //$orders_limit     = '&created_at_min=2020-06-15T00:00:00Z';
 		$orders_limit     = '&created_at_min='.$last_sync_time;
 		$new_sync_time  = date( "c" );
-		update_user_meta($user->ID,'last_sync_time',$new_sync_time);
+		if(!SELF::DEBUG){
+			update_user_meta($user->ID,'last_sync_time',$new_sync_time);
+		}
 		$filter_status    = '&payment_status=שולם';
 		$konimbo_url      = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
 		// debug url
-		$konimbo_url = 'https://api.konimbo.co.il/v1/orders/1679803?token=53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
+		if(SELF::DEBUG){
+			$konimbo_url = 'https://api.konimbo.co.il/v1/orders/5183507?token=53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
+		}
 		$method = 'GET';
 		$args   = [
 			'headers' => [],
@@ -219,22 +245,25 @@ class Konimbo extends \PriorityAPI\API{
 			$respone_message = $response['body'];
 			If ( $respone_code <= 200 ) {
 				echo 'Konimbo ok!!!<br>';
-				$orders = [json_decode( $response['body'])];
-				$this->simply_konimbo_process_orders( $orders,$user );
+				$orders = json_decode( $response['body']);
+				if(SELF::DEBUG) {
+					$orders = [json_decode( $response['body'] ) ];
+				}
+				$this->process_orders( $orders,$user );
 			} elseif ( $respone_code >= 400 && $respone_code <= 499 ) {
 				echo $respone_code . ' error occures <br>';
 				echo $respone_message . '<br>';
 				echo $konimbo_url .'<br>';
 				if($respone_code != 404){
 					$error = $respone_message.'<br>'.$konimbo_url;
-					PriorityAPI\API::instance()->sendEmailError($emails, $subject , $error );
+					$this->sendEmailError($emails, $subject , $error );
 				}
 
 			}
 		}
 
 	}
-	function konimbo_process_all_users(){
+	function process_all_users(){
 		echo 'Starting to post Konimbo orders to Priority<br> ';
 		// WP_User_Query arguments
 		$args = array(
@@ -250,9 +279,9 @@ class Konimbo extends \PriorityAPI\API{
 			foreach ( $user_query->results as $user ) {
 				$activate_sync = get_user_meta( $user->ID, 'activate_sync' )[0];
 				if ( $activate_sync ) {
-					echo '<br>Start sync  '.get_user_meta($user->ID,'nickname',true).'<br>';
+					echo 'Start sync  '.get_user_meta($user->ID,'nickname',true).'<br>';
 					ini_set('MAX_EXECUTION_TIME', 0);
-					$this->simply_konimbo($user);
+					$this->get_orders($user);
 				}
 
 			}
@@ -262,6 +291,74 @@ class Konimbo extends \PriorityAPI\API{
 
 
 		//var_dump(get_user_meta(1));
+	}
+	function update_status($title,$comment,$order,$user_id){
+		$user = get_user_by('ID',$user_id);
+		$data = [];
+		$token          = get_user_meta( $user->ID, 'token' ,true);
+		$data['token'] = $token;
+		$statuses = [
+			'status_option_title' => $title,
+			'username'            => 'Priority ERP',
+			'comment'             => $comment
+		];
+		$data['order']['statuses'][] = $statuses;
+	// request
+		$konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/';
+		$konimbo_url      = $konimbo_base_url . $order;
+		// debug url
+		if(SELF::DEBUG){
+			$konimbo_url = 'https://api.konimbo.co.il/v1/orders/5183507';
+		}
+		$method = 'PUT';
+		$args   = [
+			'headers' => array(
+				'Content-Type'   => 'application/json',
+			),
+			'timeout' => 45,
+			'method'  => strtoupper( $method ),
+			'body'    => json_encode($data)
+			//'sslverify' => $this->option('sslverify', false)
+		];
+
+
+		if ( ! empty( $options ) ) {
+			$args = array_merge( $args, $options );
+		}
+
+		$response = wp_remote_request( $konimbo_url, $args );
+
+		$emails = [$user->user_email];
+		$subject = 'Konimbo Error for user '. get_user_meta($user->ID,'nickname',true);
+
+		if ( is_wp_error( $response ) ) {
+			echo 'internal server error<br>';
+			echo $response->get_error_message();
+
+
+			$error = $response->get_error_message();
+			$this->sendEmailError($emails, $subject , $error );
+		} else {
+			$respone_code    = (int) wp_remote_retrieve_response_code( $response );
+			$respone_message = $response['body'];
+			If ( $respone_code <= 200 ) {
+				echo 'Konimbo ok!!!<br>';
+				if(SELF::DEBUG) {
+					$orders = [json_decode( $response['body'] ) ];
+				}
+			} elseif ( $respone_code >= 400 && $respone_code <= 499 ) {
+				echo $respone_code . ' error occures <br>';
+				echo $respone_message . '<br>';
+				echo $konimbo_url .'<br>';
+				if($respone_code != 404){
+					$error = $respone_message.'<br>'.$konimbo_url;
+					$this->sendEmailError($emails, $subject , $error );
+				}
+
+			}
+		}
+
+
 	}
 	public function makeRequest($method, $url_addition = null,$options = [], $user)
 	{
@@ -319,7 +416,6 @@ class Konimbo extends \PriorityAPI\API{
 
 
 	}
-
 	// backend
 	function backend(){
 
@@ -387,11 +483,19 @@ class Konimbo extends \PriorityAPI\API{
 	}
 	// admin pages
 	function konimbo_options() {
-		echo( '<br><br>This plugin is Konimbo<br>' );
-		if ( isset( $_GET['post_all'] ) ) {
-			$this->konimbo_process_all_users();
-
+		echo( '<br><br><h1>This  is Konimbo</h1><br>' );
+		if(SELF::DEBUG){
+			echo( 'Debug Mode!<br>' );
 		}
+		if ( isset( $_GET['post_all'] ) ) {
+			$this->process_all_users();
+		}
+		if ( isset( $_GET['update_status'] ) ) {
+			$this->update_status('TEST2','MY COMMENT2','5183507',2);
+		}
+
+
+
 	}
 	// admin menu
 	function add_menu_items(){
@@ -402,8 +506,12 @@ class Konimbo extends \PriorityAPI\API{
 }
 
 add_action('plugins_loaded', function(){
-	Konimbo::instance()->run();
+	Priority_Hub::instance()->run();
 	});
+
+
+
+
 
 
 
