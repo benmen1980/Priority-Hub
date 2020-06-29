@@ -3,7 +3,7 @@ defined('ABSPATH') or die('No direct script access!'); ?>
 
 <h1>
 	<?php echo 'Priority Hub'; ?>
-	<span id="p18a_version"><?php echo P18AW_VERSION; ?></span>
+	<span id="p18a_version"><?php echo PHUB_VERSION; ?></span>
 </h1>
 
 <br />
@@ -35,10 +35,13 @@ defined('ABSPATH') or die('No direct script access!'); ?>
 </div>
 
 <?php
-switch ($_GET['tab']){
-	    case 'konimbo':
-		include_once (PHUB_ADMIN_DIR.'konimbo.php');
-		break;
+if(isset($_GET['tab'])){
+	switch ($_GET['tab']){
+		case 'konimbo':
+			include_once (PHUB_ADMIN_DIR.'konimbo.php');
+			break;
+	}
 }
+
 
 ?>
