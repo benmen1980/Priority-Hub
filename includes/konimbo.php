@@ -1,8 +1,7 @@
 <?php
 class Konimbo extends \Priority_Hub {
-	private static $instance;
-	const DEBUG = true;
-
+	public static $instance;
+	public  $debug;
 	public static function instance()
 	{
 		if (is_null(static::$instance)) {
@@ -20,6 +19,7 @@ class Konimbo extends \Priority_Hub {
 	{
 		//return is_admin() ? $this->backend(): $this->frontend();
 	}
+
 	function post_order_to_priority( $order, $user ) {
 
 		$cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
@@ -44,9 +44,9 @@ class Konimbo extends \Priority_Hub {
 		$shipping_data           = [
 			'NAME'      => $order->name,
 			'CUSTDES'   => $order->name,
-			'PHONENUM'  => $order->phone,
-			'EMAIL'     => $order->email,
-			'CELLPHONE' => $order->phone,
+			//	'PHONENUM'  => $order->phone,
+			//	'EMAIL'     => $order->email,
+			//	'CELLPHONE' => $order->phone,
 			'ADDRESS'   => $order->address,
 		];
 		$data['SHIPTO2_SUBFORM'] = $shipping_data;
@@ -57,12 +57,14 @@ class Konimbo extends \Priority_Hub {
 			// check variation
 			$variations = $order->upgrades;
 			foreach ( $variations as $variation ) {
-				if ( $item->line_item_id == $variation->line_item_id ) {
-					$partname = $variation->inventory_code;
+				if(isset($item->line_item_id) && isset($variation->inventory_code)){
+					if ( $item->line_item_id == $variation->line_item_id ) {
+						$partname = $variation->inventory_code;
+					}
 				}
 			}
 			// debug
-			if ( SELF::DEBUG ) {
+			if ($this->debug) {
 				$partname = '000';
 			}
 			$data['ORDERITEMS_SUBFORM'][] = [
@@ -165,10 +167,11 @@ class Konimbo extends \Priority_Hub {
 			echo $response['message'] . '<br>';
 			$index ++;
 		}
-		$emails  = [];
+		$emails  = [ $user->user_email ];
 		$subject = 'Priority Konimbo API error ';
 		if ( ! empty( $error ) ) {
 			$this->sendEmailError( $emails, $subject, $error );
+			var_dump($response);
 		}
 		echo 'Complete to sync ' . $index . ' orders<br>';
 	}
@@ -188,19 +191,19 @@ class Konimbo extends \Priority_Hub {
 		//$orders_limit     = '&created_at_min=2020-06-15T00:00:00Z';
 		$orders_limit  = '&created_at_min=' . $last_sync_time;
 		$new_sync_time = date( "c" );
-		if ( ! SELF::DEBUG ) {
+		if ( !$this->debug ) {
 			update_user_meta( $user->ID, 'konimbo_last_sync_time', $new_sync_time );
 		}
 		$filter_status = '&payment_status=שולם';
 		$konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
 		// debug url
-		if ( SELF::DEBUG ) {
+		if ($this->debug) {
 			$konimbo_url = 'https://api.konimbo.co.il/v1/orders/5200078?token=53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
 		}
 		$method = 'GET';
 		$args   = [
 			'headers' => [],
-			'timeout' => 45,
+			'timeout' => 450,
 			'method'  => strtoupper( $method ),
 			//'sslverify' => $this->option('sslverify', false)
 		];
@@ -217,7 +220,7 @@ class Konimbo extends \Priority_Hub {
 
 		if ( is_wp_error( $response ) ) {
 			echo 'internal server error<br>';
-			echo $response->get_error_message();
+			echo 'Konimbo error: '.$response->get_error_message();
 
 
 			$error = $response->get_error_message();
@@ -228,7 +231,7 @@ class Konimbo extends \Priority_Hub {
 			If ( $respone_code <= 200 ) {
 				echo 'Konimbo ok!!!<br>';
 				$orders = json_decode( $response['body'] );
-				if ( SELF::DEBUG ) {
+				if ( $this->debug ) {
 					$orders = [ json_decode( $response['body'] ) ];
 				}
 				$this->process_orders( $orders, $user );
@@ -249,6 +252,7 @@ class Konimbo extends \Priority_Hub {
 	function process_all_users() {
 		echo 'Starting to loop all  Konimbo users...<br> ';
 		// WP_User_Query arguments
+		$this->debug = $_POST['debug'] == 'debug' ? true : false;
 		$args = array(
 			//'role'           => 'shop_manager',
 			'order'   => 'DESC',
@@ -260,7 +264,7 @@ class Konimbo extends \Priority_Hub {
 		// The User Loop
 		if ( ! empty( $user_query->results ) ) {
 			foreach ( $user_query->results as $user ) {
-				$activate_sync = get_user_meta( $user->ID, 'konimbo_activate_sync' )[0];
+				$activate_sync = get_user_meta( $user->ID, 'konimbo_activate_sync',true );
 				if ( $activate_sync ) {
 					echo 'Start sync  ' . get_user_meta( $user->ID, 'nickname', true ) . '<br>';
 					ini_set( 'MAX_EXECUTION_TIME', 0 );
@@ -279,7 +283,7 @@ class Konimbo extends \Priority_Hub {
 	function update_status( $title, $comment, $order, $user_id ) {
 		$user                        = get_user_by( 'ID', $user_id );
 		$data                        = [];
-		$token                       = get_user_meta( $user->ID, 'token', true );
+		$token                       = get_user_meta( $user->ID, 'konimbo_token', true );
 		$data['token']               = $token;
 		$statuses                    = [
 			'status_option_title' => $title,
@@ -305,7 +309,6 @@ class Konimbo extends \Priority_Hub {
 		if ( ! empty( $options ) ) {
 			$args = array_merge( $args, $options );
 		}
-
 		$response = wp_remote_request( $konimbo_url, $args );
 
 		$emails  = [ $user->user_email ];
@@ -323,7 +326,7 @@ class Konimbo extends \Priority_Hub {
 			$respone_message = $response['body'];
 			If ( $respone_code <= 200 ) {
 				echo 'Konimbo ok!!!<br>';
-				if ( SELF::DEBUG ) {
+				if ($this->debug) {
 					$orders = [ json_decode( $response['body'] ) ];
 				}
 			} elseif ( $respone_code >= 400 && $respone_code <= 499 ) {
