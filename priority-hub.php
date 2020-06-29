@@ -18,8 +18,9 @@ define('PHUB_PLUGIN_NAME'      , 'Priority Hub');
 define('PHUB_PLUGIN_ADMIN_URL' , sanitize_title(PHUB_PLUGIN_NAME));
 
 include_once (PHUB_INCLUDES_DIR.'konimbo.php');
+include_once (PHUB_ADMIN_DIR.'acf.php');
 
-class Priority_Hub extends \PriorityAPI\API{
+class Priority_Hub {
 	private static $instance; // api instance
 	// constants
 	public static function instance()
@@ -31,14 +32,20 @@ class Priority_Hub extends \PriorityAPI\API{
 		return static::$instance;
 	}
 	public function __construct() {
-		parent::__construct();
 		add_action( 'admin_menu',array( $this,'add_menu_items'));
 	}
 	public function run()
 	{
 		return is_admin() ? $this->backend(): $this->frontend();
 	}
+	protected function get($key, $filter = null, $options = null)
+	{
+		if (is_null($filter)) {
+			return isset($_GET[$key]) ? $_GET[$key] : null;
+		}
 
+		return filter_var($_GET[$key], filter_id($filter), $options);
+	}
 	public function makeRequest($method, $url_addition = null,$options = [], $user)
 	{
 		$args = [
