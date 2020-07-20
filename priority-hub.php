@@ -139,7 +139,7 @@ class Priority_Hub {
 
 	// admin pages
 	function hub_options() {
-		include_once ( PHUB_ADMIN_DIR.'\options-header.php');
+		include_once ( PHUB_ADMIN_DIR.'options-header.php');
 
 
 
