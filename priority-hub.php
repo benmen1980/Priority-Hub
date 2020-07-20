@@ -18,7 +18,6 @@ define('PHUB_PLUGIN_NAME'      , 'Priority Hub');
 define('PHUB_PLUGIN_ADMIN_URL' , sanitize_title(PHUB_PLUGIN_NAME));
 
 include_once (PHUB_INCLUDES_DIR.'konimbo.php');
-include_once (PHUB_ADMIN_DIR.'acf.php');
 
 class Priority_Hub {
 	private static $instance; // api instance
@@ -157,6 +156,7 @@ class Priority_Hub {
 add_action('plugins_loaded', function(){
 	Priority_Hub::instance()->run();
 	Konimbo::instance()->run();
+	include_once (PHUB_ADMIN_DIR.'acf.php');
 	});
 
 
