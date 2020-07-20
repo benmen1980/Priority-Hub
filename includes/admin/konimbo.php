@@ -11,7 +11,11 @@
         <div><input type="checkbox" name="generalpart" value="generalpart"><span>Post general item</span></div>
         <div><input type="text" name="order" value=""><span>Debug Order</span></div>
         <br>
-        <input type="submit" value="Click here to sync Konimbo to Priority">
+        <?php
+        //<input type="submit" value="Click here to sync Konimbo to Priority">
+        wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
+        submit_button('Get Orders');
+        ?>
     </form>
 <?php
 	// show active users
