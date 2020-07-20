@@ -22,6 +22,7 @@ include_once (PHUB_ADMIN_DIR.'acf.php');
 
 class Priority_Hub {
 	private static $instance; // api instance
+	protected static $prefix; // options prefix
 	// constants
 	public static function instance()
 	{
@@ -46,11 +47,26 @@ class Priority_Hub {
 
 		return filter_var($_GET[$key], filter_id($filter), $options);
 	}
+
+	public function option($option, $default = false)
+	{
+		return get_option(static::$prefix . $option, $default);
+	}
+
+
+	// decode unicode hebrew text
+	public function decodeHebrew($string)
+	{
+		return preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($match) {
+			return mb_convert_encoding(pack('H*', $match[1]), 'UTF-8', 'UTF-16BE');
+		}, $string);
+	}
+
 	public function makeRequest($method, $url_addition = null,$options = [], $user)
 	{
 		$args = [
 			'headers' => [
-				'Authorization' => 'Basic ' . base64_encode($this->option('username') . ':' . $this->option('password')),
+				'Authorization' => 'Basic ' . base64_encode( get_user_meta( $user->ID, 'username' ,true) . ':' . get_user_meta( $user->ID, 'password' ,true)),
 				'Content-Type'  => 'application/json',
 				'X-App-Id' => get_user_meta( $user->ID, 'x-app-id' ,true),
 				'X-App-Key' => get_user_meta( $user->ID, 'x-app-key' ,true)

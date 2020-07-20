@@ -8,6 +8,8 @@
     <form action="<?php echo esc_url( admin_url('admin-post.php')); ?>" method="post">
         <input type="hidden" name="action" value="sync_konimbo">
         <div><input type="checkbox" name="debug" value="debug"><span>Debug</span></div>
+        <div><input type="checkbox" name="generalpart" value="generalpart"><span>Post general item</span></div>
+        <div><input type="text" name="order" value=""><span>Debug Order</span></div>
         <br>
         <input type="submit" value="Click here to sync Konimbo to Priority">
     </form>

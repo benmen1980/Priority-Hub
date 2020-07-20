@@ -28,18 +28,15 @@ class Konimbo extends \Priority_Hub {
 			'CDES'     => $order->name,
 			//'CURDATE'  => date('Y-m-d', strtotime($order->get_date_created())),
 			'BOOKNUM'  => $order->id,
-			//'DCODE' => $priority_dep_number, // this is the site in Priority
 			'DETAILS'  => $order->note,
 		];
 		// billing customer details
 		$customer_data                = [
-
 			'PHONE' => $order->phone,
 			'EMAIL' => $order->email,
 			'ADRS'  => $order->address,
 		];
 		$data['ORDERSCONT_SUBFORM'][] = $customer_data;
-
 		// shipping
 		$shipping_data           = [
 			'NAME'      => $order->name,
@@ -64,15 +61,18 @@ class Konimbo extends \Priority_Hub {
 				}
 			}
 			// debug
-			if ($this->debug) {
+			if ($this->generalpart) {
 				$partname = '000';
 			}
+			$second_code = isset($item->second_code) ? $item->second_code : '';
+			$unit_price = isset($item->unit_price) ? (float) $item->unit_price : 0.0;
+			$quantity = isset($item->quantity) ? (int)$item->quantity : 0;
 			$data['ORDERITEMS_SUBFORM'][] = [
 				'PARTNAME' => $partname,
 				'TQUANT'   => (int) $item->quantity,
-				'VATPRICE' => (float) $item->unit_price * (int) $item->quantity,
+				'VATPRICE' => $unit_price * $quantity,
 				//  if you are working without tax prices you need to modify this line Roy 7.10.18
-				'REMARK1'  => $item->second_code,
+				'REMARK1'  =>$second_code,
 				//'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
 			];
 		}
@@ -198,7 +198,8 @@ class Konimbo extends \Priority_Hub {
 		$konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
 		// debug url
 		if ($this->debug) {
-			$konimbo_url = 'https://api.konimbo.co.il/v1/orders/5200078?token=53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
+			$order = $this->order;
+			$konimbo_url = 'https://api.konimbo.co.il/v1/orders/'.$order.'?token=53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
 		}
 		$method = 'GET';
 		$args   = [
@@ -228,7 +229,7 @@ class Konimbo extends \Priority_Hub {
 		} else {
 			$respone_code    = (int) wp_remote_retrieve_response_code( $response );
 			$respone_message = $response['body'];
-			If ( $respone_code <= 200 ) {
+			If ( $respone_code <= 201 ) {
 				echo 'Konimbo ok!!!<br>';
 				$orders = json_decode( $response['body'] );
 				if ( $this->debug ) {
@@ -252,7 +253,11 @@ class Konimbo extends \Priority_Hub {
 	function process_all_users() {
 		echo 'Starting to loop all  Konimbo users...<br> ';
 		// WP_User_Query arguments
-		$this->debug = $_POST['debug'] == 'debug' ? true : false;
+		if(isset($_POST['debug'])){
+			$this->debug = $_POST['debug'] == 'debug' ? true : false;
+			$this->generalpart = $_POST['generalpart'] == 'generalpart' ? true : false;
+			$this->order = $_POST['order'];
+		}
 		$args = array(
 			//'role'           => 'shop_manager',
 			'order'   => 'DESC',
@@ -403,5 +408,27 @@ class Konimbo extends \Priority_Hub {
 	function register_tag() {
 		register_taxonomy_for_object_type( 'post_tag', 'konimbo_order' );
 
+	}
+
+	public function sendEmailError($emails, $subject = '', $error = '')
+	{
+
+		$bloguser = get_users('role=Administrator')[0];
+		array_push($emails,$bloguser->user_email);
+
+
+		if (!$emails) return;
+
+		if ($emails && !is_array($emails)) {
+			$pattern ="/[\._a-zA-Z0-9-]+@[\._a-zA-Z0-9-]+/i";
+			preg_match_all($pattern, $emails, $result);
+			$emails = $result[0];
+		}
+		$to = array_unique($emails);
+		$headers = [
+			'content-type: text/html'
+		];
+
+		wp_mail( $to,get_bloginfo('name').' '. $subject, $error, $headers );
 	}
 }
