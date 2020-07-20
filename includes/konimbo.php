@@ -255,7 +255,10 @@ class Konimbo extends \Priority_Hub {
 		// WP_User_Query arguments
 		if(isset($_POST['debug'])){
 			$this->debug = $_POST['debug'] == 'debug' ? true : false;
-			$this->generalpart = $_POST['generalpart'] == 'generalpart' ? true : false;
+			$this->generalpart = false;
+			if(isset($_POST['generalpart'])){
+				$this->generalpart = $_POST['generalpart'] == 'generalpart' ? true : false;
+			}
 			$this->order = $_POST['order'];
 		}
 		$args = array(
