@@ -34,6 +34,20 @@ class Priority_Hub {
 	}
 	public function __construct() {
 		add_action( 'admin_menu',array( $this,'add_menu_items'));
+		add_action('admin_init', function(){
+			// enqueue admin styles
+			wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
+
+			// enqueue admin scripts
+			wp_enqueue_script('p18a-admin-js', PHUB_ASSET_URL . 'admin.js', ['jquery']);
+			wp_localize_script('p18a-admin-js', 'P18A', [
+				'nonce'         => wp_create_nonce('p18a_request'),
+				'working'       => __('Working', 'p18a'),
+				'json_response' => __('JSON Response', 'p18a'),
+				'json_request'  => __('JSON Request', 'p18a'),
+			]);
+
+		});
 	}
 	public function run()
 	{
@@ -135,7 +149,7 @@ class Priority_Hub {
 	// admin menu
 	function add_menu_items(){
 	 $hook = add_menu_page( 'Priority Hub', 'Priority Hub', 'activate_plugins', 'priority-hub', array($this,'hub_options'));
-	 add_action( "load-$hook", 'add_options' );
+	 //add_action( "load-$hook", 'add_options' );
 
 	}
 }
