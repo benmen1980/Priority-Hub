@@ -19,6 +19,7 @@ define('PHUB_PLUGIN_ADMIN_URL' , sanitize_title(PHUB_PLUGIN_NAME));
 
 include_once (PHUB_INCLUDES_DIR.'konimbo.php');
 
+
 class Priority_Hub {
 	private static $instance; // api instance
 	protected static $prefix; // options prefix
