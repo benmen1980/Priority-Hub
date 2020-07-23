@@ -41,7 +41,7 @@ class Konimbo extends \Priority_Hub {
 		$shipping_data           = [
 			'NAME'      => $order->name,
 			'CUSTDES'   => $order->name,
-			//	'PHONENUM'  => $order->phone,
+			'PHONENUM'  => $order->phone,
 			//	'EMAIL'     => $order->email,
 			//	'CELLPHONE' => $order->phone,
 			'ADDRESS'   => $order->address,
