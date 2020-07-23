@@ -28,7 +28,7 @@ class Konimbo extends \Priority_Hub {
 			'CDES'     => $order->name,
 			//'CURDATE'  => date('Y-m-d', strtotime($order->get_date_created())),
 			'BOOKNUM'  => $order->id,
-			'DETAILS'  => $order->note,
+				'DETAILS'  => trim(preg_replace('/\s+/', ' ', $order->note))
 		];
 		// billing customer details
 		$customer_data                = [
