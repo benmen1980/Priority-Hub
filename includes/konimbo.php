@@ -194,7 +194,7 @@ class Konimbo extends \Priority_Hub {
 		if ( !$this->debug ) {
 			update_user_meta( $user->ID, 'konimbo_last_sync_time', $new_sync_time );
 		}
-		$filter_status = '&payment_status=שולם';
+		$filter_status = '&payment_status=אשראי - מלא';
 		$konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
 		// debug url
 		if ($this->debug) {
