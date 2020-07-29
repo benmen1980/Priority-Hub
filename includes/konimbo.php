@@ -82,7 +82,7 @@ class Konimbo extends \Priority_Hub {
 		foreach ( $order->discounts as $item ) {
 			$data['ORDERITEMS_SUBFORM'][] = [
 				'PARTNAME' => $discount_partname,
-				'TQUANT'   => - 1,
+				'TQUANT'   => -1 * (int)$item->quantity,
 				'VATPRICE' => (float) $item->price * - 1.0,
 				'PDES'     => $item->title,
 				//'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
