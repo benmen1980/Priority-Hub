@@ -18,6 +18,7 @@ define('PHUB_PLUGIN_NAME'      , 'Priority Hub');
 define('PHUB_PLUGIN_ADMIN_URL' , sanitize_title(PHUB_PLUGIN_NAME));
 
 include_once (PHUB_INCLUDES_DIR.'konimbo.php');
+include_once (PHUB_INCLUDES_DIR.'front-panel.php');
 
 
 class Priority_Hub {
@@ -35,19 +36,17 @@ class Priority_Hub {
 	public function __construct() {
 		add_action( 'admin_menu',array( $this,'add_menu_items'));
 		add_action('admin_init', function(){
-			// enqueue admin styles
-			wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
-
-			// enqueue admin scripts
-			wp_enqueue_script('p18a-admin-js', PHUB_ASSET_URL . 'admin.js', ['jquery']);
 			wp_localize_script('p18a-admin-js', 'P18A', [
 				'nonce'         => wp_create_nonce('p18a_request'),
 				'working'       => __('Working', 'p18a'),
 				'json_response' => __('JSON Response', 'p18a'),
 				'json_request'  => __('JSON Request', 'p18a'),
 			]);
-
 		});
+		add_action( 'wp_enqueue_scripts', function(){
+			wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
+			wp_enqueue_script('p18a-admin-js', PHUB_ASSET_URL . 'admin.js', ['jquery']);
+		} );
 	}
 	public function run()
 	{
