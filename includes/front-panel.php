@@ -4,6 +4,7 @@ add_shortcode('simply_front_panel','simply_front_panel');
 function simply_front_panel(){
 	defined('ABSPATH') or die('No direct script access!');
 	wp_enqueue_script( 'myshortcodejs', PHUB_ASSET_URL.'front.js',[],null,true );
+	ob_start();
 	$tab = '';
 	if(!empty($_GET['tab'])){
 	    $tab = $_GET['tab'];
@@ -47,6 +48,7 @@ function simply_front_panel(){
 				break;
 		}
 	}
-
-
+    $content = ob_get_contents();
+    ob_end_clean();
+    return $content;
 }
