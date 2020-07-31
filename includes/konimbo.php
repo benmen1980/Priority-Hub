@@ -267,10 +267,10 @@ class Konimbo extends \Priority_Hub {
 			$this->order = $_POST['order'];
 		}
 		$args = array(
-			//'role'           => 'shop_manager',
 			'order'   => 'DESC',
 			'orderby' => 'user_registered',
-			//'include'        => $users
+			'meta_key' => 'konimbo_activate_sync',
+					'meta_value' => true
 		);
 		// The User Query
 		$user_query = new WP_User_Query( $args );
