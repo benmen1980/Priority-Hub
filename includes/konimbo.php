@@ -19,6 +19,147 @@ class Konimbo extends \Priority_Hub {
 	{
 		//return is_admin() ? $this->backend(): $this->frontend();
 	}
+	function get_orders_all_users() {
+		$args = array(
+			'order'   => 'DESC',
+			'orderby' => 'user_registered',
+			'meta_key' => 'konimbo_activate_sync',
+			'meta_value' => true
+		);
+		// The User Query
+		$user_query = new WP_User_Query( $args );
+		// The User Loop
+		if ( ! empty( $user_query->results ) ) {
+			foreach ( $user_query->results as $user ) {
+				$activate_sync = get_user_meta( $user->ID, 'konimbo_activate_sync',true );
+				if ( $activate_sync ) {
+					//echo 'Start sync  ' . get_user_meta( $user->ID, 'nickname', true ) . '<br>';
+					ini_set( 'MAX_EXECUTION_TIME', 0 );
+					$responses[$user->ID] = $this->get_orders_by_user( $user );
+				}
+			}
+		} else {
+			// no shop_manager found
+		}
+		return $responses;
+	} // return array user/orders
+	function get_orders_by_user( $user ) {
+		// this function return the orders as array, if error return null
+		// the funciton heandles the error internally
+		//echo 'Getting orders from  Konimbo...<br>';
+		$token = get_user_meta( $user->ID, 'konimbo_token', true );
+		/*if(empty($token)){
+			$token            = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
+		}*/
+		$last_sync_time = get_user_meta( $user->ID, 'konimbo_last_sync_time', true );
+		if ( empty( $token ) ) {
+			$token = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
+		}
+		$konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
+		$order_id         = '';
+		//$orders_limit     = '&created_at_min=2020-06-15T00:00:00Z';
+		$orders_limit  = '&created_at_min=' . $last_sync_time;
+		$new_sync_time = date( "c" );
+		if ( !$this->debug ) {
+			update_user_meta( $user->ID, 'konimbo_last_sync_time', $new_sync_time );
+		}
+		$filter_status = '&payment_status=אשראי - מלא';
+		$konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
+		// debug url
+		if ($this->debug) {
+			$order = $this->order;
+			$konimbo_url = 'https://api.konimbo.co.il/v1/orders/'.$order.'?token='.$token;
+		}
+		$method = 'GET';
+		$args   = [
+			'headers' => [],
+			'timeout' => 450,
+			'method'  => strtoupper( $method ),
+			//'sslverify' => $this->option('sslverify', false)
+		];
+
+
+		if ( ! empty( $options ) ) {
+			$args = array_merge( $args, $options );
+		}
+		$response = wp_remote_request( $konimbo_url, $args );
+		$subject = 'Konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
+
+		if ( is_wp_error( $response ) ) {
+			//echo 'internal server error<br>';
+			//echo 'Konimbo error: '.$response->get_error_message();
+			$this->sendEmailError($subject, $response->get_error_message() );
+		} else {
+			$respone_code    = (int) wp_remote_retrieve_response_code( $response );
+			$respone_message = $response['body'];
+			If ( $respone_code <= 201 ) {
+				//echo 'Konimbo ok!!!<br>';
+				$orders = json_decode( $response['body'] );
+				if ( $this->debug ) {
+					$orders = [ json_decode( $response['body'] ) ];
+				}
+				return $orders;
+			}
+			if ( $respone_code >= 400 && $respone_code <= 499 &&  $respone_code != 404 ) {
+				$error = $respone_message . '<br>' . $konimbo_url;
+				$this->sendEmailError( $subject, $error );
+				return null;
+			}
+			if($respone_code == 404 ){
+				return null;
+			}
+		}
+	} // return array of Konimbo orders
+	function process_orders( $orders, $user ) {
+		// this function return array of all responses one per order
+		$index = 0;
+		$error = '';
+		$responses = [];
+		if(empty($orders)){
+			return ;
+		}
+		foreach ( $orders as $order ) {
+			//	echo 'Starting process order ' . $order->id . '<br>';
+			$response = $this->post_order_to_priority( $order, $user );
+			$responses[$order->id]= $response;
+			$response_body = json_decode($response['body']);
+			if ( $response['code'] <= 201 && $response['code'] >= 200 ) {
+				$body_array = json_decode( $response["body"], true );
+				// Create post object
+				$my_post = array(
+					'post_type'    => 'konimbo_order',
+					'post_title'   => $order->name . ' ' . $order->id,
+					'post_content' => json_encode( $response["body"] ),
+					'post_status'  => 'publish',
+					'post_author'  => $user->ID,
+					'tags_input'   => array( $body_array["ORDNAME"] )
+				);
+				// Insert the post into the database
+				wp_insert_post( $my_post );
+				// update Konimbo status and Priority sales order number
+				$this->update_status( 'Priority ERP', $body_array["ORDNAME"], $order->id, $user->ID );
+			}
+			if ( ! $response['status'] || $response['code'] >= 400 ) {
+				$error .= '*********************************<br>Error on order: ' . $order->id . '<br>';
+				$interface_errors =  $response_body->FORM->InterfaceErrors;
+				if(isset($interface_errors)){
+					foreach ($interface_errors as $err_line){
+						if(is_object($err_line)){
+							$error .=  $err_line->text.'<br>';
+						}else{
+							$error .=  $interface_errors->text.'<br>';
+						}
+					}
+				}
+			}
+			//echo $response['message'] . '<br>';
+			$index ++;
+			if('' == $response['code']){
+				break;
+			}
+		}
+		return $responses;
+	} // return array of Priority responses by user
 	function post_order_to_priority( $order, $user ) {
 
 		$cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
@@ -138,156 +279,49 @@ class Konimbo extends \Priority_Hub {
 
 		return $response;
 	}
-	function process_orders( $orders, $user ) {
-		$index = 0;
-		$error = '';
-		$responses = [];
-		foreach ( $orders as $order ) {
-		//	echo 'Starting process order ' . $order->id . '<br>';
-			$response = $this->post_order_to_priority( $order, $user );
-			$responses[$order->id]= $response;
-			$response_body = json_decode($response['body']);
-			if ( $response['code'] <= 201 && $response['code'] >= 200 ) {
-				$body_array = json_decode( $response["body"], true );
-				// Create post object
-				$my_post = array(
-					'post_type'    => 'konimbo_order',
-					'post_title'   => $order->name . ' ' . $order->id,
-					'post_content' => json_encode( $response["body"] ),
-					'post_status'  => 'publish',
-					'post_author'  => $user->ID,
-					'tags_input'   => array( $body_array["ORDNAME"] )
-				);
-				// Insert the post into the database
-				wp_insert_post( $my_post );
-				// update Konimbo status and Priority sales order number
-				$this->update_status( 'Priority ERP', $body_array["ORDNAME"], $order->id, $user->ID );
+	public function processResponse($responses){
+		$response3 = null;
+		if(empty($responses)){
+			return ;
+		}
+		$message = '';
+		$is_error = false;
+		foreach ( $responses as $user_id => $responses2 ) {
+			$user = get_user_by( 'ID', $user_id );
+			$message .= 'Starting process user ' . $user->nickname . '<br>';
+			if(empty($responses2)){
+				continue;
 			}
-			if ( ! $response['status'] || $response['code'] >= 400 ) {
-				$error .= '*********************************<br>Error on order: ' . $order->id . '<br>';
-				$interface_errors =  $response_body->FORM->InterfaceErrors;
-				if(isset($interface_errors)){
-				foreach ($interface_errors as $err_line){
-					if(is_object($err_line)){
-					$error .=  $err_line->text.'<br>';
-					}else{
-						$error .=  $interface_errors->text.'<br>';
+			foreach($responses2 as $order => $response){
+				if(isset($response['code'])){
+					$response_code = (int) $response['code'];
+					$response_body = json_decode( $response['body'] );
+					if ( $response_code >= 200 & $response_code <= 201 ) {
+						$message .=  'New Priority order ' . $response_body->ORDNAME.' places successfully for Konimbo order '.$response_body->BOOKNUM.'<br>';
 					}
+					if ( $response_code >= 400 && $response_code < 500 ) {
+						$is_error = true;
+						$message .= 'Error while posting order ' . $order . '<br>';
+						$interface_errors = $response_body->FORM->InterfaceErrors;
+						if ( is_array( $interface_errors ) ) {
+							foreach ( $interface_errors as $err_line ) {
+								if ( is_object( $err_line ) ) {
+									$message .=  $err_line->text . '<br>';
+								}
+							}
+						}else {
+							$message .= $interface_errors->text . '<br>';
+						}
+					}elseif(500 == $response_code || 0 == $response_code){
+						$message .= 'Priority message: '.$response['message'].'<br>';
+					}
+				}elseif(isset($response['response']['code'])){
+					$message .= $response['body'].'<br>';
 				}
 			}
+			$response3[$user_id] = array("message" => $message,"is_error" => $is_error);
 		}
-			//echo $response['message'] . '<br>';
-			$index ++;
-		}
-	return $responses;
-	}
-	function get_orders( $user ) {
-		//echo 'Getting orders from  Konimbo...<br>';
-		$token = get_user_meta( $user->ID, 'konimbo_token', true );
-		/*if(empty($token)){
-			$token            = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
-		}*/
-		$last_sync_time = get_user_meta( $user->ID, 'konimbo_last_sync_time', true );
-		if ( empty( $token ) ) {
-			$token = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
-		}
-		$konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
-		$order_id         = '';
-		//$orders_limit     = '&created_at_min=2020-06-15T00:00:00Z';
-		$orders_limit  = '&created_at_min=' . $last_sync_time;
-		$new_sync_time = date( "c" );
-		if ( !$this->debug ) {
-			update_user_meta( $user->ID, 'konimbo_last_sync_time', $new_sync_time );
-		}
-		$filter_status = '&payment_status=אשראי - מלא';
-		$konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
-		// debug url
-		if ($this->debug) {
-			$order = $this->order;
-			$konimbo_url = 'https://api.konimbo.co.il/v1/orders/'.$order.'?token=53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
-		}
-		$method = 'GET';
-		$args   = [
-			'headers' => [],
-			'timeout' => 450,
-			'method'  => strtoupper( $method ),
-			//'sslverify' => $this->option('sslverify', false)
-		];
-
-
-		if ( ! empty( $options ) ) {
-			$args = array_merge( $args, $options );
-		}
-
-		$response = wp_remote_request( $konimbo_url, $args );
-
-		$emails  = [ $user->user_email ];
-		$subject = 'Konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
-
-		if ( is_wp_error( $response ) ) {
-			echo 'internal server error<br>';
-			echo 'Konimbo error: '.$response->get_error_message();
-			$error = $response->get_error_message();
-		//	$this->sendEmailError( $emails, $subject, $error );
-		} else {
-			$respone_code    = (int) wp_remote_retrieve_response_code( $response );
-			$respone_message = $response['body'];
-			If ( $respone_code <= 201 ) {
-				//echo 'Konimbo ok!!!<br>';
-				$orders = json_decode( $response['body'] );
-				if ( $this->debug ) {
-					$orders = [ json_decode( $response['body'] ) ];
-				}
-				$responses = $this->process_orders( $orders, $user );
-			} elseif ( $respone_code >= 400 && $respone_code <= 499 ) {
-				$responses[0] = $response;
-				//echo $respone_code . ' error occures <br>';
-				//echo $respone_message . '<br>';
-				//echo $konimbo_url . '<br>';
-				if ( $respone_code != 404 ) {
-					$error = $respone_message . '<br>' . $konimbo_url;
-					//$this->sendEmailError( $emails, $subject, $error );
-				}
-
-			}
-		}
-
-		return $responses;
-
-	}
-	function process_all_users() {
-		//echo 'Starting to loop all  Konimbo users...<br> ';
-		// WP_User_Query arguments
-		if(isset($_POST['debug'])){
-			$this->debug = $_POST['debug'] == 'debug' ? true : false;
-			$this->generalpart = false;
-			if(isset($_POST['generalpart'])){
-				$this->generalpart = $_POST['generalpart'] == 'generalpart' ? true : false;
-			}
-			$this->order = $_POST['order'];
-		}
-		$args = array(
-			'order'   => 'DESC',
-			'orderby' => 'user_registered',
-			'meta_key' => 'konimbo_activate_sync',
-					'meta_value' => true
-		);
-		// The User Query
-		$user_query = new WP_User_Query( $args );
-		// The User Loop
-		if ( ! empty( $user_query->results ) ) {
-		foreach ( $user_query->results as $user ) {
-			$activate_sync = get_user_meta( $user->ID, 'konimbo_activate_sync',true );
-			if ( $activate_sync ) {
-				//echo 'Start sync  ' . get_user_meta( $user->ID, 'nickname', true ) . '<br>';
-				ini_set( 'MAX_EXECUTION_TIME', 0 );
-				$responses[$user->ID] = $this->get_orders( $user );
-			}
-		}
-		} else {
-			// no shop_manager found
-		}
-		return $responses;
+		return $response3;
 	}
 	function update_status( $title, $comment, $order, $user_id ) {
 		$user                        = get_user_by( 'ID', $user_id );
@@ -329,12 +363,12 @@ class Konimbo extends \Priority_Hub {
 
 
 			$error = $response->get_error_message();
-			$this->sendEmailError( $emails, $subject, $error );
+			$this->sendEmailError($subject, $error);
 		} else {
 			$respone_code    = (int) wp_remote_retrieve_response_code( $response );
 			$respone_message = $response['body'];
-			If ( $respone_code <= 200 ) {
-				echo 'Konimbo ok!!!<br>';
+			If ( $respone_code <= 201 ) {
+				//echo 'Konimbo ok!!!<br>';
 				if ($this->debug) {
 					$orders = [ json_decode( $response['body'] ) ];
 				}
@@ -344,7 +378,7 @@ class Konimbo extends \Priority_Hub {
 				echo $konimbo_url . '<br>';
 				if ( $respone_code != 404 ) {
 					$error = $respone_message . '<br>' . $konimbo_url;
-					$this->sendEmailError( $emails, $subject, $error );
+					$this->sendEmailError( $subject, $error );
 				}
 
 			}
@@ -433,41 +467,5 @@ class Konimbo extends \Priority_Hub {
 		];
 
 		wp_mail( $to,get_bloginfo('name').' '. $subject, $error, $headers );
-	}
-	public function processResponse($responses){
-		$message = '';
-		$is_error = false;
-		foreach ( $responses as $user_id => $responses2 ) {
-			$user = get_user_by( 'ID', $user_id );
-			$message .= 'Starting process user ' . $user->nickname . '<br>';
-
-			foreach($responses2 as $order => $response){
-				if(isset($response['code'])){
-					$response_code = (int) $response['code'];
-					$response_body = json_decode( $response['body'] );
-					if ( $response_code >= 200 & $response_code <= 201 ) {
-						$message .=  'New order places successfully ' . $response_body->FORM->ORDERS->ORDNAME.'<br>';
-					}
-					if ( $response_code >= 400 ) {
-						$is_error = true;
-						$message .= 'Error while posting order ' . $order . '<br>';
-						$interface_errors = $response_body->FORM->InterfaceErrors;
-						if ( is_array( $interface_errors ) ) {
-							foreach ( $interface_errors as $err_line ) {
-								if ( is_object( $err_line ) ) {
-									$message .=  $err_line->text . '<br>';
-								}
-							}
-						}else {
-							$message .= $interface_errors->text . '<br>';
-						}
-					}
-				}elseif(isset($response['response']['code'])){
-					$message .= $response['body'].'<br>';
-				}
-			}
-			$response3[$user_id] = array("message" => $message,"is_error" => $is_error);
-		}
-		return $response3;
 	}
 }
