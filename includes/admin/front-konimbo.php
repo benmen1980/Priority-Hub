@@ -34,14 +34,11 @@ echo ('<br><br>');
 
             </tbody>
         </table>
+        <input name="submit" type="submit" value="Post Order" />
+    </form>
+    </div>
 		<?php
 		wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
-		submit_button('Post Order');
-		?>
-	</form>
-    </div>
-<?php
-
 kriesi_pagination();
 
 if ( isset( $_POST['submit'] ) ) {
@@ -73,6 +70,7 @@ function kriesi_pagination($pages = '', $range = 2) {
 
 	$the_query = new WP_Query( array(
 			'post_type'      => 'konimbo_order',
+			'author'         => get_current_user_id(),
 			'paged'          => $paged,
 			//'post_status'    => 'publish',
 			'orderby'        => 'date',
@@ -80,18 +78,6 @@ function kriesi_pagination($pages = '', $range = 2) {
 			'posts_per_page' => 10
 		)
 	);
-
-	/*while ( $the_query->have_posts() ) : $the_query->the_post();
-	$id = get_the_ID();
-	$post_tags = wp_get_post_tags($id);
-		$ordername = '';
-	if(isset($post_tags[0] ->name)) {
-		$ordername = $post_tags[0]->name;
-	}
-		$post =  get_post();
-		echo '<div>' . get_the_title() .' '.$ordername.'</div>';
-		//the_content();
-	endwhile;*/
 	?>
 	<table class="responstable">
             <thead>
@@ -109,12 +95,12 @@ function kriesi_pagination($pages = '', $range = 2) {
                     $id = get_the_ID();
                     $post_tags = wp_get_post_tags($id);
                     $ordername = '';
-                    if(isset($post_tags[0] ->name)) {
+                    if(isset($post_tags[0]->name)) {
 	                    $ordername = $post_tags[0]->name;
                     }
                     ?>
                     <td><input type="checkbox"/></td>
-                    <td><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></td>
+                    <td><?php echo the_title(); ?></td>
                     <td><?php echo $ordername; ?></td>
                     <td><?php echo get_the_date('c') ?></td>
                 </tr>
