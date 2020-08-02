@@ -3,7 +3,7 @@
 Plugin Name: Priority Hub
 */
 
-define('PHUB_VERSION'       , '1.0');
+define('PHUB_VERSION'       , '1.01');
 define('PHUB_SELF'          , __FILE__);
 define('PHUB_URI'           , plugin_dir_url(__FILE__));
 define('PHUB_DIR'           , plugin_dir_path(__FILE__));
