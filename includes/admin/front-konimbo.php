@@ -39,7 +39,7 @@ echo ('<br><br>');
     </div>
 		<?php
 		wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
-kriesi_pagination();
+
 
 if ( isset( $_POST['submit'] ) ) {
     // fetch data
@@ -48,15 +48,16 @@ if ( isset( $_POST['submit'] ) ) {
 	Konimbo::instance()->debug = true;
 	Konimbo::instance()->generalpart = '';
 	// procees
-	$responses = Konimbo::instance()->get_orders( $user );
-	$responses = Konimbo::instance()->process_all_users();
-	$message =  Konimbo::instance()->processResponse($responses);
+	$orders = Konimbo::instance()->get_orders_by_user( $user );
+	$responses[$user->ID] = Konimbo::instance()->process_orders($orders,$user);
+	$messages =  Konimbo::instance()->processResponse($responses);
+	$message = $messages[$user->ID];
 	$emails  = [ $user->user_email ];
 	$subject = 'Priority Konimbo API error ';
 	if (false == $message['is_error']) {
 		Konimbo::instance()->sendEmailError($subject, $message);
 	}
-	echo $message['message'];
+	echo $message['message'].'<br>';
 }
 ?>
 </div>
@@ -64,6 +65,8 @@ if ( isset( $_POST['submit'] ) ) {
 
 
 <?php
+
+kriesi_pagination();
 
 function kriesi_pagination($pages = '', $range = 2) {
 	$paged = get_query_var( 'paged' ) ? get_query_var( 'paged' ) : 1; // setup pagination
