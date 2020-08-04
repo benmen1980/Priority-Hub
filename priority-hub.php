@@ -1,7 +1,22 @@
 <?php
 /*
-Plugin Name: Priority Hub
+* @package     PriorityHub
+* @author      Roy Ben Menachem
+* @copyright   2020 SimplyCT
+*
+* @wordpress-plugin
+* Plugin Name: Priority Hub
+* Plugin URI: http://www.simplyCT.co.il
+* Description: Priority hub connnects any platform to Priority ERP
+* Version: 1.03
+* Author: SimplyCT
+* Author URI: http://www.roi-holdings.com
+* Licence: GPLv2
+* Text Domain: p18a
+* Domain Path: languages
+*
 */
+
 
 define('PHUB_VERSION'       , '1.01');
 define('PHUB_SELF'          , __FILE__);
