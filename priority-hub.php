@@ -57,9 +57,9 @@ class Priority_Hub {
 				'json_response' => __('JSON Response', 'p18a'),
 				'json_request'  => __('JSON Request', 'p18a'),
 			]);
+			wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
 		});
 		add_action( 'wp_enqueue_scripts', function(){
-			wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
 			wp_enqueue_script('p18a-admin-js', PHUB_ASSET_URL . 'admin.js', ['jquery']);
 		} );
 	}
