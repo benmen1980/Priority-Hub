@@ -61,6 +61,7 @@ class Priority_Hub {
 		});
 		add_action( 'wp_enqueue_scripts', function(){
 			wp_enqueue_script('p18a-admin-js', PHUB_ASSET_URL . 'admin.js', ['jquery']);
+			wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
 		} );
 	}
 	public function run()
