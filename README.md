@@ -1,2 +1,2 @@
-# Konimbo
-Integrate Konimbo with Priority API
+# Priority Hub
+Integrate any system with Priority and Zoom
