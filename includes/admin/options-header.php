@@ -40,6 +40,9 @@ if(isset($_GET['tab'])){
 		case 'konimbo':
 			include_once (PHUB_ADMIN_DIR.'konimbo.php');
 			break;
+        case 'shopify':
+            include_once (PHUB_DIR.'shopify/shopify.php');
+            break;
 	}
 }
 
