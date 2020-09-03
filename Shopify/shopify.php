@@ -51,6 +51,11 @@ if ( isset( $_POST['submit'] ) ) {
         echo $message['message'];
     }
 }
-
-
+?>
+<hr>
+    <ol>
+        <li>Sync orders from Shopify</li>
+        <li>Sync inventory to Shopify</li>
+        <li>Open items from Priority to Shopify</li>
+    </ol>
 
