@@ -1,7 +1,7 @@
 <?php
-add_shortcode('simply_front_panel','simply_front_panel');
+add_shortcode('priority_hub__front_panel','priority_hub_front_panel');
 
-function simply_front_panel(){
+function priority_hub_front_panel(){
 	defined('ABSPATH') or die('No direct script access!');
 	wp_enqueue_script( 'myshortcodejs', PHUB_ASSET_URL.'front.js',[],null,true );
 	ob_start();
@@ -46,6 +46,10 @@ function simply_front_panel(){
 			case 'konimbo':
 				include_once (PHUB_ADMIN_DIR.'front-konimbo.php');
 				break;
+            case 'shopify':
+                echo 'Shopify';
+                include_once (PHUB_DIR.'shopify/shopify-front.php');
+                break;
 		}
 	}
     $content = ob_get_contents();
