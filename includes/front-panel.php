@@ -47,7 +47,6 @@ function priority_hub_front_panel(){
 				include_once (PHUB_ADMIN_DIR.'front-konimbo.php');
 				break;
             case 'shopify':
-                echo 'Shopify';
                 include_once (PHUB_DIR.'shopify/shopify-front.php');
                 break;
 		}
