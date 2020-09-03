@@ -44,68 +44,68 @@ function get_orders_all_users() {
     return $responses;
 } // return array user/orders
 function get_orders_by_user( $user ) {
-// this function return the orders as array, if error return null
-// the function handles the error internally
-//echo 'Getting orders from  Shopify...<br>';
-$last_sync_time = get_user_meta( $user->ID, 'shopify_last_sync_time', true );
-$shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json';
-$order_id         = '';
-//$orders_limit     = '&created_at_min=2020-06-15T00:00:00Z';
-$orders_limit  = '&created_at_min=' . $last_sync_time;
-$new_sync_time = date( "c" );
-if ( !$this->debug ) {
-update_user_meta( $user->ID, 'konimbo_last_sync_time', $new_sync_time );
-}
-$filter_status = '&payment_status=אשראי - מלא';
-//$konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
-// debug url
-if ($this->debug) {
-    $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json?name='.$this->order;
-}
-$method = 'GET';
-//$YOUR_USERNAME = 'aa4f3bc167e3b86c475eb2aefac63bf3';
-$YOUR_USERNAME = get_user_meta( $user->ID, 'shopify_username', true );
-//$YOUR_PASSWORD = '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';
-$YOUR_PASSWORD = get_user_meta( $user->ID, 'shopify_password', true );
-$args   = [
-'headers' => array(
-    'Authorization' => 'Basic ' . base64_encode( $YOUR_USERNAME . ':' . $YOUR_PASSWORD )
-),
-'timeout' => 450,
-'method'  => strtoupper( $method ),
-//'sslverify' => $this->option('sslverify', false)
-];
+    // this function return the orders as array, if error return null
+    // the function handles the error internally
+    //echo 'Getting orders from  Shopify...<br>';
+    $last_sync_time = get_user_meta( $user->ID, 'shopify_last_sync_date', true );
+    $order_id         = '';
+    //$orders_limit     = '?created_at_min=2020-06-15T00:00:00Z';
+    $orders_limit  = '?created_at_min=' . $last_sync_time;
+    $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json'.$orders_limit;
+    $new_sync_time = date( "c" );
+    if ( !$this->debug ) {
+        update_user_meta( $user->ID, 'shopify_last_sync_date', $new_sync_time );
+    }
+    $filter_status = '&payment_status=אשראי - מלא';
+    //$konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
+    // debug url
+    if ($this->debug) {
+        $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json?name='.$this->order;
+    }
+    $method = 'GET';
+    //$YOUR_USERNAME = 'aa4f3bc167e3b86c475eb2aefac63bf3';
+    $YOUR_USERNAME = get_user_meta( $user->ID, 'shopify_username', true );
+    //$YOUR_PASSWORD = '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';
+    $YOUR_PASSWORD = get_user_meta( $user->ID, 'shopify_password', true );
+    $args   = [
+        'headers' => array(
+            'Authorization' => 'Basic ' . base64_encode( $YOUR_USERNAME . ':' . $YOUR_PASSWORD )
+    ),
+    'timeout' => 450,
+    'method'  => strtoupper( $method ),
+    //'sslverify' => $this->option('sslverify', false)
+    ];
 
 
-if ( ! empty( $options ) ) {
-$args = array_merge( $args, $options );
-}
-$response = wp_remote_request( $shopify_base_url, $args );
-$subject = 'Shopify Error for user ' . get_user_meta( $user->ID, 'nickname', true );
-if ( is_wp_error( $response ) ) {
-//echo 'internal server error<br>';
-//echo 'Konimbo error: '.$response->get_error_message();
-$this->sendEmailError($subject, $response->get_error_message() );
-} else {
-$respone_code    = (int) wp_remote_retrieve_response_code( $response );
-$respone_message = $response['body'];
-If ( $respone_code <= 201 ) {
-//echo 'Konimbo ok!!!<br>';
-$orders = json_decode( $response['body'] )->orders;
-if ( $this->debug ) {
-//$orders = [json_decode( $response['body'])->orders];
-}
-return $orders;
-}
-if ( $respone_code >= 400 && $respone_code <= 499 &&  $respone_code != 404 ) {
-$error = $respone_message . '<br>' . $shopify_base_url;
-$this->sendEmailError( $subject, $error );
-return null;
-}
-if($respone_code == 404 ){
-return null;
-}
-}
+    if ( ! empty( $options ) ) {
+        $args = array_merge( $args, $options );
+    }
+    $response = wp_remote_request( $shopify_base_url, $args );
+    $subject = 'Shopify Error for user ' . get_user_meta( $user->ID, 'nickname', true );
+    if ( is_wp_error( $response ) ) {
+        //echo 'internal server error<br>';
+        //echo 'Konimbo error: '.$response->get_error_message();
+        $this->sendEmailError($subject, $response->get_error_message() );
+    } else {
+        $respone_code    = (int) wp_remote_retrieve_response_code( $response );
+        $respone_message = $response['body'];
+        If ( $respone_code <= 201 ) {
+            //echo 'Konimbo ok!!!<br>';
+            $orders = json_decode( $response['body'] )->orders;
+            if ( $this->debug ) {
+                //$orders = [json_decode( $response['body'])->orders];
+            }
+            return $orders;
+        }
+        if ( $respone_code >= 400 && $respone_code <= 499 &&  $respone_code != 404 ) {
+            $error = $respone_message . '<br>' . $shopify_base_url;
+            $this->sendEmailError( $subject, $error );
+            return null;
+        }
+        if($respone_code == 404 ){
+            return null;
+        }
+    }
 } // return array of Shopify orders
 function process_orders( $orders, $user ) {
 // this function return array of all responses one per order
