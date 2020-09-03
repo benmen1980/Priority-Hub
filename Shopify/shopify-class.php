@@ -20,35 +20,34 @@ public function run()
 //return is_admin() ? $this->backend(): $this->frontend();
 }
 function get_orders_all_users() {
-$args = array(
-'order'   => 'DESC',
-'orderby' => 'user_registered',
-'meta_key' => 'shopify_activate_sync',
-'meta_value' => true
-);
-// The User Query
-$user_query = new WP_User_Query( $args );
-// The User Loop
-if ( ! empty( $user_query->results ) ) {
-foreach ( $user_query->results as $user ) {
-$activate_sync = get_user_meta( $user->ID, 'shopify_activate_sync',true );
-if ( $activate_sync ) {
-//echo 'Start sync  ' . get_user_meta( $user->ID, 'nickname', true ) . '<br>';
-ini_set( 'MAX_EXECUTION_TIME', 0 );
-$responses[$user->ID] = $this->get_orders_by_user( $user );
-}
-}
-} else {
-// no shop_manager found
-}
-return $responses;
+    $args = array(
+    'order'   => 'DESC',
+    'orderby' => 'user_registered',
+    'meta_key' => 'shopify_activate_sync',
+    'meta_value' => true
+    );
+    // The User Query
+    $user_query = new WP_User_Query( $args );
+    // The User Loop
+    if ( ! empty( $user_query->results ) ) {
+        foreach ( $user_query->results as $user ) {
+            $activate_sync = get_user_meta( $user->ID, 'shopify_activate_sync',true );
+            if ( $activate_sync ) {
+                //echo 'Start sync  ' . get_user_meta( $user->ID, 'nickname', true ) . '<br>';
+                ini_set( 'MAX_EXECUTION_TIME', 0 );
+                $responses[$user->ID] = $this->get_orders_by_user( $user );
+            }
+        }
+    } else {
+    // no shop_manager found
+    }
+    return $responses;
 } // return array user/orders
 function get_orders_by_user( $user ) {
 // this function return the orders as array, if error return null
 // the function handles the error internally
 //echo 'Getting orders from  Shopify...<br>';
 $last_sync_time = get_user_meta( $user->ID, 'shopify_last_sync_time', true );
-//$shopify_base_url = 'https://simplyct7929137.myshopify.com/admin/api/2020-04/orders.json';
 $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json';
 $order_id         = '';
 //$orders_limit     = '&created_at_min=2020-06-15T00:00:00Z';
@@ -61,8 +60,7 @@ $filter_status = '&payment_status=אשראי - מלא';
 //$konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
 // debug url
 if ($this->debug) {
-$order = $this->order;
-$Shopify_url = 'https://api.konimbo.co.il/v1/orders/'.$order.'?token='.$token;
+    $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json?name='.$this->order;
 }
 $method = 'GET';
 //$YOUR_USERNAME = 'aa4f3bc167e3b86c475eb2aefac63bf3';
@@ -95,12 +93,12 @@ If ( $respone_code <= 201 ) {
 //echo 'Konimbo ok!!!<br>';
 $orders = json_decode( $response['body'] )->orders;
 if ( $this->debug ) {
-$orders = [ json_decode( $response['body'] ) ];
+//$orders = [json_decode( $response['body'])->orders];
 }
 return $orders;
 }
 if ( $respone_code >= 400 && $respone_code <= 499 &&  $respone_code != 404 ) {
-//$error = $respone_message . '<br>' . $konimbo_url;
+$error = $respone_message . '<br>' . $shopify_base_url;
 $this->sendEmailError( $subject, $error );
 return null;
 }
@@ -168,7 +166,7 @@ $data        = [
 'CUSTNAME' => $cust_number,
 'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
 //'CURDATE'  => date('Y-m-d', strtotime($order->get_date_created())),
-'BOOKNUM'  => 'SHOPIFY-'.$order->number,
+'BOOKNUM'  => 'SHOPIFY'.$order->name,
 //'DETAILS'  => trim(preg_replace('/\s+/', ' ', $order->note))
 ];
 // billing customer details
