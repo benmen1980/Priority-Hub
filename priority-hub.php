@@ -33,7 +33,7 @@ define('PHUB_PLUGIN_NAME'      , 'Priority Hub');
 define('PHUB_PLUGIN_ADMIN_URL' , sanitize_title(PHUB_PLUGIN_NAME));
 
 include_once (PHUB_INCLUDES_DIR.'front-panel.php');
-include_once (PHUB_INCLUDES_DIR.'konimbo.php');
+include_once (PHUB_DIR.'konimbo/konimbo-class.php');
 include_once (PHUB_DIR.'shopify/shopify-class.php');
 
 
@@ -171,10 +171,10 @@ class Priority_Hub {
 }
 
 add_action('plugins_loaded', function(){
+    include_once (PHUB_ADMIN_DIR.'acf.php');
 	Priority_Hub::instance()->run();
     Shopify::instance()->run();
 	Konimbo::instance()->run();
-	include_once (PHUB_ADMIN_DIR.'acf.php');
 	});
 
 
