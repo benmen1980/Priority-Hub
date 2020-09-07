@@ -1,6 +1,4 @@
 <?php
-// shopify class
-include_once (PHUB_DIR.'shopify/shopify-class.php');
 // Shopify options
 echo ('<br><br>');
 
