@@ -38,7 +38,7 @@ defined('ABSPATH') or die('No direct script access!'); ?>
 if(isset($_GET['tab'])){
 	switch ($_GET['tab']){
 		case 'konimbo':
-			include_once (PHUB_ADMIN_DIR.'konimbo.php');
+			include_once (PHUB_DIR.'konimbo/konimbo.php');
 			break;
         case 'shopify':
             include_once (PHUB_DIR.'shopify/shopify.php');
