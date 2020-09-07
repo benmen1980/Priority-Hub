@@ -2,6 +2,10 @@
 add_shortcode('priority_hub__front_panel','priority_hub_front_panel');
 
 function priority_hub_front_panel(){
+    if(!is_user_logged_in()){
+        global $wp;
+        wp_die('You are not <a href="'.wp_login_url(home_url( $wp->request )).'">logged in');
+    }
 	defined('ABSPATH') or die('No direct script access!');
 	wp_enqueue_script( 'myshortcodejs', PHUB_ASSET_URL.'front.js',[],null,true );
 	ob_start();
@@ -44,7 +48,7 @@ function priority_hub_front_panel(){
 	if(isset($_GET['tab'])){
 		switch ($_GET['tab']){
 			case 'konimbo':
-				include_once (PHUB_ADMIN_DIR.'front-konimbo.php');
+				include_once (PHUB_DIR.'konimbo/front-konimbo.php');
 				break;
             case 'shopify':
                 include_once (PHUB_DIR.'shopify/shopify-front.php');
