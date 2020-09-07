@@ -11,8 +11,8 @@ static::$instance = new static();
 return static::$instance;
 }
 public function __construct() {
-add_action( 'init', array($this,'custom_post_type'), 0 );
-add_action('init', array($this,'register_tag'));
+add_action( 'init', array($this,'custom_post_type'), 998 );
+add_action('init', array($this,'register_tag'),999);
 add_action( 'admin_post_sync_konimbo', array($this,'process_all_users'));
 }
 public function run()
@@ -90,7 +90,6 @@ function get_orders_by_user( $user ) {
         $respone_code    = (int) wp_remote_retrieve_response_code( $response );
         $respone_message = $response['body'];
         If ( $respone_code <= 201 ) {
-            //echo 'Konimbo ok!!!<br>';
             $orders = json_decode( $response['body'] )->orders;
             if ( $this->debug ) {
                 //$orders = [json_decode( $response['body'])->orders];
@@ -120,35 +119,34 @@ foreach ( $orders as $order ) {
 $response = $this->post_order_to_priority( $order, $user );
 $responses[$order->id]= $response;
 $response_body = json_decode($response['body']);
-if ( $response['code'] <= 201 && $response['code'] >= 200 ) {
 $body_array = json_decode( $response["body"], true );
 // Create post object
 $my_post = array(
-'post_type'    => 'konimbo_order',
-'post_title'   => $order->name . ' ' . $order->id,
-'post_content' => json_encode( $response["body"] ),
-'post_status'  => 'publish',
-'post_author'  => $user->ID,
-'tags_input'   => array( $body_array["ORDNAME"] )
+    'post_type'    => 'shopify_order',
+    'post_title'   => $order->name . ' ' . $order->billing_address->first_name.' '.$order->billing_address->last_name,
+    'post_content' => json_encode( $response["body"] ),
+    'post_status'  => 'publish',
+    'post_author'  => $user->ID,
+    'tags_input'   =>  $body_array["FORM"]["ORDERS"]["ORDNAME"]
 );
 // Insert the post into the database
-wp_insert_post( $my_post );
-// update Konimbo status and Priority sales order number
-//$this->update_status( 'Priority ERP', $body_array["ORDNAME"], $order->id, $user->ID );
+$pid = wp_insert_post( $my_post );
+if ( $response['code'] <= 201 && $response['code'] >= 200 ) {
+
 }
 /*
 if ( ! $response['status'] || $response['code'] >= 400 ) {
-$error .= '*********************************<br>Error on order: ' . $order->id . '<br>';
-$interface_errors =  $response_body->FORM->InterfaceErrors;
-if(isset($interface_errors)){
-foreach ($interface_errors as $err_line){
-if(is_object($err_line)){
-$error .=  $err_line->text.'<br>';
-}else{
-$error .=  $interface_errors->text.'<br>';
-}
-}
-}
+    $error .= '*********************************<br>Error on order: ' . $order->id . '<br>';
+    $interface_errors =  $response_body->FORM->InterfaceErrors;
+    if(isset($interface_errors)){
+        foreach ($interface_errors as $err_line){
+            if(is_object($err_line)){
+                $error .=  $err_line->text.'<br>';
+            }else{
+                $error .=  $interface_errors->text.'<br>';
+            }
+        }
+    }
 }
 */
 //echo $response['message'] . '<br>';
@@ -375,8 +373,8 @@ $this->sendEmailError( $subject, $error );
 
 
 }
-// post type Konimbo order
-function custom_post_type() {
+// post type Shopify order
+public function custom_post_type() {
 
 $labels = array(
 'name'                  => _x( 'Shopify Orders', 'Post Type General Name', 'text_domain' ),
@@ -426,14 +424,10 @@ $args   = array(
 'publicly_queryable'  => true,
 'capability_type'     => 'post',
 );
-register_post_type( 'Shopify_order', $args );
-register_taxonomy_for_object_type( 'post_tag', 'portfolio' );
-
-
+register_post_type( 'shopify_order', $args );
 }
 function register_tag() {
-register_taxonomy_for_object_type( 'post_tag', 'Shopify_order' );
-
+    register_taxonomy_for_object_type( 'post_tag', 'shopify_order' );
 }
 public function sendEmailError($subject = '', $error = '')
 {
