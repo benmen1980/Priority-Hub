@@ -8,7 +8,16 @@ echo ('<br><br>');
         <input type="hidden" name="shopify_action" value="sync_shopify">
         <div><input type="checkbox" name="shopify_debug" value="debug"><span>Debug</span></div>
         <div><input type="checkbox" name="shopify_generalpart" value="generalpart"><span>Post general item</span></div>
+        <div>
+            <select name="shopify_document" id="shopify_document">
+                <option value="order">Order</option>
+                <option value="otc">Over The counter invoice</option>
+                <option value="invoice">Sales Invoice</option>
+                <option value="orderreceipt">Order + Receipt</option>
+            </select>
+        </div>
         <div><input type="text" name="shopify_order" value=""><span>Post single Order</span></div>
+
         <br>
         <?php
         //<input type="submit" value="Click here to sync Konimbo to Priority"> 4567567
@@ -20,6 +29,7 @@ echo ('<br><br>');
     </form>
 <?php
 if ( isset( $_POST['submit'] ) ) {
+    Shopify::instance()->document = $_POST['shopify_document'];
     if(isset($_POST['shopify_generalpart'])){
         Shopify::instance()->generalpart = true;
     }
