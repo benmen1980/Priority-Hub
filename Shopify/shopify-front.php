@@ -27,6 +27,17 @@ echo ('<br><br>');
                             echo get_user_meta( $user->ID, 'shopify_last_sync_date', true );?></p>
                     </td>
                 </tr>
+                <tr>
+                    <td>Sync to Priority as</td>
+                    <td>
+                        <select name="document" id="document">
+                            <option value="order">Sales Order</option>
+                            <option value="otc">Over The Counter Invoice</option>
+                            <option value="invoice">Sales Invoice</option>
+                            <option value="orderreceipt">Sales Order + Receipt</option>
+                        </select>
+                    </td>
+                </tr>
                 </tbody>
             </table>
             <input name="submit" type="submit" value="<?php _e('Post order','p18a');?>" />
@@ -39,6 +50,7 @@ wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
 if ( isset( $_POST['submit'] ) & !empty($_POST['order'])){
     // fetch data
     $user = wp_get_current_user();
+    Shopify::instance()->document = $_POST['shopify_document'];
     Shopify::instance()->order = $_POST['order'];
     Shopify::instance()->debug = true;
     Shopify::instance()->generalpart = '';
