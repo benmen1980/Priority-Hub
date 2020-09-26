@@ -544,12 +544,7 @@ public function sendEmailError($subject = '', $error = '')
 {
 $user = wp_get_current_user();
 $emails  = [$user->user_email,get_bloginfo('admin_email')];
-$bloguser = get_users('role=Administrator')[0];
-array_push($emails,$bloguser->user_email);
-
-
 if (!$emails) return;
-
 if ($emails && !is_array($emails)) {
 $pattern ="/[\._a-zA-Z0-9-]+@[\._a-zA-Z0-9-]+/i";
 preg_match_all($pattern, $emails, $result);
@@ -559,7 +554,6 @@ $to = array_unique($emails);
 $headers = [
 'content-type: text/html'
 ];
-
 wp_mail( $to,get_bloginfo('name').' '. $subject, $error, $headers );
 }
 }
