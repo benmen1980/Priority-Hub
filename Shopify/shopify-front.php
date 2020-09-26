@@ -31,6 +31,7 @@ echo ('<br><br>');
                     <td>Sync to Priority as</td>
                     <td>
                         <select name="document" id="document">
+                            <option selected="selected"></option>
                             <option value="order">Sales Order</option>
                             <option value="otc">Over The Counter Invoice</option>
                             <option value="invoice">Sales Invoice</option>
