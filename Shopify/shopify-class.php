@@ -133,7 +133,7 @@ $my_post = array(
     'post_content' => json_encode( $response["body"] ),
     'post_status'  => 'publish',
     'post_author'  => $user->ID,
-    'tags_input'   =>  $body_array["FORM"]["ORDERS"]["ORDNAME"]
+    'tags_input'   =>  $body_array["ORDNAME"].$body_array["IVNUM"]
 );
 // Insert the post into the database
 $pid = wp_insert_post( $my_post );
@@ -278,9 +278,9 @@ function post_otc_to_priority( $order, $user ) {
         $data        = [
             'CUSTNAME' => $cust_number,
             'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
-//'CURDATE'  => date('Y-m-d', strtotime($order->get_date_created())),
+            'IVDATE'  => date('Y-m-d', strtotime($order->created_at)),
             'BOOKNUM'  => 'SHOPIFY'.$order->name,
-//'DETAILS'  => trim(preg_replace('/\s+/', ' ', $order->note))
+            'DETAILS'  => 'SHOPIFY'.$order->name,
         ];
 // billing customer details
         $customer_data                = [
@@ -335,17 +335,14 @@ function post_otc_to_priority( $order, $user ) {
 // shipping rate
 
         $shipping = $order->total_shipping_price_set->presentment_money;
-
+        if($shipping->amount>0){
         $data['EINVOICEITEMS_SUBFORM'][] = [
-// 'PARTNAME' => $this->option('shipping_' . $shipping_method_id, $order->get_shipping_method()),
             'PARTNAME' => '000',
             'PDES'     => '',
             'TQUANT'   => (int)1,
             'TOTPRICE' => (float)$shipping->amount
         ];
-
-
-
+        }
 // payment info
         $payment              = $order->payment_details;
         $shopify_cards_dictionary   = array(
@@ -399,11 +396,11 @@ if(isset($response['code'])){
 $response_code = (int) $response['code'];
 $response_body = json_decode( $response['body'] );
 if ( $response_code >= 200 & $response_code <= 201 ) {
-$message .=  'New Priority order ' . $response_body->ORDNAME.' places successfully for Shopify order '.$response_body->BOOKNUM.'<br>';
+$message .=  'New Priority Entity ' . $response_body->ORDNAME.$response_body->IVNUM.' places successfully for Shopify order '.$response_body->BOOKNUM.'<br>';
 }
 if ( $response_code >= 400 && $response_code < 500 ) {
 $is_error = true;
-$message .= 'Error while posting order ' . $order . '<br>';
+$message .= 'Error while posting order ' . $order->name . '<br>';
 $interface_errors = $response_body->FORM->InterfaceErrors;
 if ( is_array( $interface_errors ) ) {
 foreach ( $interface_errors as $err_line ) {
@@ -488,7 +485,6 @@ $this->sendEmailError( $subject, $error );
 
 
 }
-// post type Shopify order
 public function custom_post_type() {
 
 $labels = array(
@@ -547,7 +543,7 @@ function register_tag() {
 public function sendEmailError($subject = '', $error = '')
 {
 $user = wp_get_current_user();
-$emails  = [$user->user_email];
+$emails  = [$user->user_email,get_bloginfo('admin_email')];
 $bloguser = get_users('role=Administrator')[0];
 array_push($emails,$bloguser->user_email);
 
