@@ -1,71 +1,70 @@
 <?php
-include_once (PHUB_DIR.'shopify/shopify-class.php');
 // Shopify options
 echo ('<br><br>');
+
 ?>
-    <div>
-    <div class="wrap woocommerce">
-        <form action="" method="post">
-            <input type="hidden" name="action" value="sync_shopify">
-            <table class="form-table">
-                <tbody>
-                <tr valign="top">
-                    <th scope="row" class="titledesc">
-                        <label for="order">Shopify Order <span class="woocommerce-help-tip"></span></label>
-                    </th>
-                    <td class="forminp forminp-text">
-                        <input name="order" id="shopify-order" type="text" style="" value="" class="" placeholder="">
-                    </td>
-                </tr>
-                <tr valign="top">
-                    <th scope="row" class="titledesc">
-                        <label for="last-sync-date">Last Sync Date<span class="woocommerce-help-tip"></span></label>
-                    </th>
-                    <td class="forminp forminp-text">
-                        <p><?php $user = wp_get_current_user();
-                            $user_meta = get_user_meta( $user->ID);
-                            echo get_user_meta( $user->ID, 'shopify_last_sync_date', true );?></p>
-                    </td>
-                </tr>
-                <tr>
-                    <td>Sync to Priority as</td>
-                    <td>
-                        <select name="document" id="document">
-                            <option selected="selected"></option>
-                            <option value="order">Sales Order</option>
-                            <option value="otc">Over The Counter Invoice</option>
-                            <option value="invoice">Sales Invoice</option>
-                            <option value="orderreceipt">Sales Order + Receipt</option>
-                        </select>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-            <input name="submit" type="submit" value="<?php _e('Post order','p18a');?>" />
-        </form>
-    </div>
+
+    <form action="<?php echo esc_url( admin_url('admin.php?page=priority-hub&tab=shopify')); ?>" method="post">
+        <input type="hidden" name="shopify_action" value="sync_shopify">
+        <div><input type="checkbox" name="shopify_debug" value="debug"><span>Debug</span></div>
+        <div><input type="checkbox" name="shopify_generalpart" value="generalpart"><span>Post general item</span></div>
+        <div>
+            <select value="" name="shopify_document" id="shopify_document">
+                <option selected="selected"></option>
+                <option value="order">Order</option>
+                <option value="otc">Over The counter invoice</option>
+                <option value="invoice">Sales Invoice</option>
+                <option value="orderreceipt">Order + Receipt</option>
+            </select>
+            <label>Select Priority Entity target</label></div>
+        <input type="text" name="shopify_order" value=""><span>Post single Order, if you keep it empty, the system will post all orders from last sync date as defined in the user page</span></div>
+
+        <br>
+        <?php
+        //<input type="submit" value="Click here to sync Konimbo to Priority"> 4567567
+
+        wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
+        submit_button('Get Orders');
+
+        ?>
+    </form>
 <?php
-wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
-
-
-if ( isset( $_POST['submit'] ) & !empty($_POST['order'])){
-    // fetch data
-    $user = wp_get_current_user();
+if ( isset( $_POST['submit'] ) ) {
     Shopify::instance()->document = $_POST['shopify_document'];
-    Shopify::instance()->order = $_POST['order'];
-    Shopify::instance()->debug = true;
-    Shopify::instance()->generalpart = '';
-    // procees
-    $orders = Shopify::instance()->get_orders_by_user( $user );
-    $responses[$user->ID] = Shopify::instance()->process_orders($orders,$user);
-    $messages =  Shopify::instance()->processResponse($responses);
-    $message = $messages[$user->ID];
-    $emails  = [ $user->user_email ];
-    $subject = 'Priority Shopify API error ';
-    if (true == $message['is_error']) {
-        Shopify::instance()->sendEmailError($subject, $message['message']);
+    if(isset($_POST['shopify_generalpart'])){
+        Shopify::instance()->generalpart = true;
     }
-    echo $message['message'].'<br>';
+    if(true == $_POST['shopify_debug'] || '' != $_POST['shopify_order']){
+        Shopify::instance()->debug = true;
+    }else{
+        Shopify::instance()->debug = false;
+    }
+    if(isset($_POST['shopify_order'])){
+        Shopify::instance()->order = $_POST['shopify_order'];
+    }
+    $user_orders = Shopify::instance()->get_orders_all_users();
+    foreach($user_orders as $user_id => $orders){
+        $user = get_user_by('ID',$user_id);
+        $responses[$user_id] = Shopify::instance()->process_orders($orders,$user);
+    }
+    $messages =  Shopify::instance()->processResponse($responses);
+    if(empty($messages)){
+        wp_die('No data to process, you might dont have orders to post or error so check your email.');
+    }
+    foreach($messages as $user_id => $message){
+        $user = get_user_by('ID',$user_id);
+        if (true == $message['is_error']) {
+            $subject = 'Shopify Error for user ' . get_user_meta( $user->ID, 'nickname', true );
+            //	Shopify::instance()->sendEmailError($subject, $message);
+        }
+        echo $message['message'];
+    }
 }
-
+?>
+<hr>
+    <ol>
+        <li>Sync orders from Shopify</li>
+        <li>Sync inventory to Shopify</li>
+        <li>Open items from Priority to Shopify</li>
+    </ol>
 
