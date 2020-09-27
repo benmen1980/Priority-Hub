@@ -2,6 +2,7 @@
 class Konimbo extends \Priority_Hub {
 	public static $instance;
 	public  $debug;
+	public $document;
 	public static function instance()
 	{
 		if (is_null(static::$instance)) {
@@ -51,7 +52,14 @@ class Konimbo extends \Priority_Hub {
 		/*if(empty($token)){
 			$token            = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
 		}*/
-		$last_sync_time = get_user_meta( $user->ID, 'konimbo_last_sync_time', true );
+        switch($this->document){
+            case 'order':
+                $last_sync_time = get_user_meta( $user->ID, 'konimbo_orders_last_sync_time', true );
+                break;
+            case 'receipt':
+                $last_sync_time = get_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', true );
+                break;
+        }
 		if ( empty( $token ) ) {
 			$token = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
 		}
@@ -61,7 +69,15 @@ class Konimbo extends \Priority_Hub {
 		$orders_limit  = '&created_at_min=' . $last_sync_time;
 		$new_sync_time = date( "c" );
 		if ( !$this->debug ) {
-			update_user_meta( $user->ID, 'konimbo_last_sync_time', $new_sync_time );
+            switch($this->document){
+                case 'order':
+                    update_user_meta( $user->ID, 'konimbo_orders_last_sync_time', $new_sync_time );
+                    break;
+                case 'receipt':
+                    update_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', $new_sync_time );
+                    break;
+            }
+
 		}
 		$filter_status = '&payment_status=אשראי - מלא';
 		$konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
@@ -115,14 +131,14 @@ class Konimbo extends \Priority_Hub {
         // the function handles the error internally
         //echo 'Getting orders from  Konimbo...<br>';
         $token = get_user_meta( $user->ID, 'konimbo_token', true );
-        $last_sync_time = get_user_meta( $user->ID, 'konimbo_last_sync_time_receipt', true );
+        $last_sync_time = get_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', true );
         $konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
         $order_id         = '';
         //$orders_limit     = '&created_at_min=2020-06-15T00:00:00Z';
         $orders_limit  = '&created_at_min=' . $last_sync_time;
         $new_sync_time = date( "c" );
         if ( !$this->debug ) {
-            update_user_meta( $user->ID, 'konimbo_last_sync_time', $new_sync_time );
+            update_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', $new_sync_time );
         }
         $filter_status = '&payment_status=שולם';
         $konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
@@ -395,8 +411,8 @@ class Konimbo extends \Priority_Hub {
         $data        = [
             'ACCNAME' => $cust_number,
             'CDES'     => $order->name,
-            //'CURDATE'  => date('Y-m-d', strtotime($order->get_date_created())),
-            'BOOKNUM'  => $order->id,
+            'IVDATE'  => date('Y-m-d', strtotime($order->created_at)),
+            'BOOKNUM'  => 'KNB-'.$order->id,
             //'DETAILS'  => trim(preg_replace('/\s+/', ' ', $order->note))
         ];
         // billing customer details
@@ -423,6 +439,7 @@ class Konimbo extends \Priority_Hub {
         $data['TPAYMENT2_SUBFORM'][] = [
             'PAYMENTCODE' => $payment_code,
             'QPRICE'      => (float) $payment->single_payment,
+            'PAYDATE'     => date('Y-m-d', strtotime($order->created_at)),
             // Konimbo can handle multi paymnets so this might be modified
             //'PAYACCOUNT'  => '',
             //'PAYCODE'     => '',
@@ -458,7 +475,7 @@ class Konimbo extends \Priority_Hub {
 					$response_code = (int) $response['code'];
 					$response_body = json_decode( $response['body'] );
 					if ( $response_code >= 200 & $response_code <= 201 ) {
-						$message .=  'New Priority order ' . $response_body->ORDNAME.' places successfully for Konimbo order '.$response_body->BOOKNUM.'<br>';
+						$message .=  'New Priority receipt ' . $response_body->IVNUM.' places successfully for Konimbo order '.$response_body->BOOKNUM.'<br>';
 					}
 					if ( $response_code >= 400 && $response_code < 500 ) {
 						$is_error = true;
@@ -610,11 +627,7 @@ class Konimbo extends \Priority_Hub {
 	public function sendEmailError($subject = '', $error = '')
 	{
 		$user = wp_get_current_user();
-		$emails  = [ $user->user_email ];
-		$bloguser = get_users('role=Administrator')[0];
-		array_push($emails,$bloguser->user_email);
-
-
+        $emails  = [$user->user_email,get_bloginfo('admin_email')];
 		if (!$emails) return;
 
 		if ($emails && !is_array($emails)) {
