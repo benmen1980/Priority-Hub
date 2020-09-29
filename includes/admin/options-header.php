@@ -30,6 +30,11 @@ defined('ABSPATH') or die('No direct script access!'); ?>
 				<?php _e('Amazon', 'p18a'); ?>
 			</a>
 		</li>
+        <li>
+            <a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=istore'); ?>" class="<?php if($this->get('tab') == 'istore') echo 'active'; ?>">
+                <?php _e('iStore', 'p18a'); ?>
+            </a>
+        </li>
 
 	</ul>
 </div>
@@ -42,6 +47,9 @@ if(isset($_GET['tab'])){
 			break;
         case 'shopify':
             include_once (PHUB_DIR.'shopify/shopify.php');
+            break;
+        case 'istore':
+            include_once (PHUB_DIR.'istore/istore.php');
             break;
 	}
 }
