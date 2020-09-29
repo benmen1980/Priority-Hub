@@ -464,6 +464,102 @@ if( function_exists('acf_add_local_field_group') ):
         'active' => true,
         'description' => '',
     ));
+    // iStore
+    acf_add_local_field_group(array(
+        'key' => 'group_5f73b71ca848c',
+        'title' => 'iStore user control',
+        'fields' => array(
+            array(
+                'key' => 'field_5f73b72858c73',
+                'label' => 'Active Sync with iStore (Isracard)',
+                'name' => 'istore_active',
+                'type' => 'true_false',
+                'instructions' => '',
+                'required' => 0,
+                'conditional_logic' => 0,
+                'wrapper' => array(
+                    'width' => '',
+                    'class' => '',
+                    'id' => '',
+                ),
+                'message' => '',
+                'default_value' => 0,
+                'ui' => 0,
+                'ui_on_text' => '',
+                'ui_off_text' => '',
+            ),
+            array(
+                'key' => 'field_5f73b78958c74',
+                'label' => 'Token',
+                'name' => 'istore_token',
+                'type' => 'text',
+                'instructions' => '',
+                'required' => 0,
+                'conditional_logic' => array(
+                    array(
+                        array(
+                            'field' => 'field_5f73b72858c73',
+                            'operator' => '==',
+                            'value' => '1',
+                        ),
+                    ),
+                ),
+                'wrapper' => array(
+                    'width' => '',
+                    'class' => '',
+                    'id' => '',
+                ),
+                'default_value' => '',
+                'placeholder' => '',
+                'prepend' => '',
+                'append' => '',
+                'maxlength' => '',
+            ),
+            array(
+                'key' => 'field_5f73b8224caf0',
+                'label' => 'Order Last Sync time',
+                'name' => 'istore_order_last_sync_time',
+                'type' => 'date_time_picker',
+                'instructions' => '',
+                'required' => 0,
+                'conditional_logic' => array(
+                    array(
+                        array(
+                            'field' => 'field_5f73b72858c73',
+                            'operator' => '==',
+                            'value' => '1',
+                        ),
+                    ),
+                ),
+                'wrapper' => array(
+                    'width' => '',
+                    'class' => '',
+                    'id' => '',
+                ),
+                'display_format' => 'd/m/Y g:i a',
+                'return_format' => 'd/m/Y g:i a',
+                'first_day' => 1,
+            ),
+        ),
+        'location' => array(
+            array(
+                array(
+                    'param' => 'user_form',
+                    'operator' => '==',
+                    'value' => 'all',
+                ),
+            ),
+        ),
+        'menu_order' => 0,
+        'position' => 'normal',
+        'style' => 'default',
+        'label_placement' => 'top',
+        'instruction_placement' => 'label',
+        'hide_on_screen' => '',
+        'active' => true,
+        'description' => '',
+    ));
+
 
 endif;
 
