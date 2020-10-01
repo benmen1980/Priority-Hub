@@ -36,7 +36,14 @@ class Konimbo extends \Priority_Hub {
 				if ( $activate_sync ) {
 					//echo 'Start sync  ' . get_user_meta( $user->ID, 'nickname', true ) . '<br>';
 					ini_set( 'MAX_EXECUTION_TIME', 0 );
-					$responses[$user->ID] = $this->get_orders_by_user( $user );
+                    switch(Konimbo::instance()->document){
+                        case 'order':
+                            $responses[$user->ID] = $this->get_orders_by_user( $user );
+                            break;
+                        case 'receipt':
+                            $responses[$user->ID] = $this->get_receipts_by_user( $user );
+                            break;
+                    }
 				}
 			}
 		} else {
@@ -80,6 +87,7 @@ class Konimbo extends \Priority_Hub {
 
 		}
 		$filter_status = '&payment_status=אשראי - מלא';
+        $filter_status = '';
 		$konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
 		// debug url
 		if ($this->debug) {
@@ -132,6 +140,9 @@ class Konimbo extends \Priority_Hub {
         //echo 'Getting orders from  konimbo...<br>';
         $token = get_user_meta( $user->ID, 'konimbo_token', true );
         $last_sync_time = get_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', true );
+        $daysback = 3;
+        $stamp = mktime(0 - $daysback * 24, 0, 0);
+        $last_sync_time = date(DATE_ATOM,$stamp);
         $konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
         $order_id         = '';
         //$orders_limit     = '&created_at_min=2020-06-15T00:00:00Z';
@@ -247,7 +258,30 @@ class Konimbo extends \Priority_Hub {
             return ;
         }
         foreach ( $receipts as $receipt ) {
-            //	echo 'Starting process order ' . $order->id . '<br>';
+            // check if receipt already been posted, and continue
+            $args = array(
+                'post_type' => 'konimbo_order',
+                'meta_query' => array(
+                    array(
+                        'key' => 'konimbo_order_number',
+                        'value' => $receipt->id,
+                        'compare' => '=',
+                    )
+                )
+            );
+            // The Query
+            $the_query = new WP_Query( $args );
+            // The Loop
+            if ( $the_query->have_posts() ) {
+                $the_query->the_post();
+                $order_post_id = get_the_ID();
+                $is_receipt = get_post_meta($order_post_id,'konimbo_is_receipts_posted',true);
+                $ordernumber = get_post_meta($order_post_id,'konimbo_order_number',true);
+                if($is_receipt) {
+                continue;
+                }
+                update_post_meta($order_post_id,'konimbo_is_receipts_posted',true);
+            }
             $response = $this->post_receipt_to_priority( $receipt, $user );
             $responses[$receipt->id]= $response;
             $response_body = json_decode($response['body']);
@@ -476,7 +510,7 @@ class Konimbo extends \Priority_Hub {
 					$response_code = (int) $response['code'];
 					$response_body = json_decode( $response['body'] );
 					if ( $response_code >= 200 & $response_code <= 201 ) {
-						$message .=  'New Priority receipt ' . $response_body->IVNUM.' places successfully for konimbo order '.$response_body->BOOKNUM.'<br>';
+						$message .=  'New Priority  ' . $response_body->IVNUM.' places successfully for konimbo order '.$response_body->BOOKNUM.'<br>';
 					}
 					if ( $response_code >= 400 && $response_code < 500 ) {
 						$is_error = true;
