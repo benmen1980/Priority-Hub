@@ -212,7 +212,8 @@ class Konimbo extends \Priority_Hub {
 					'tags_input'   => array( $body_array["ORDNAME"] )
 				);
 				// Insert the post into the database
-				wp_insert_post( $my_post );
+				$id = wp_insert_post( $my_post );
+				update_post_meta($id,'konimbo_order_number',$order->id);
 				// update konimbo status and Priority sales order number
 				$this->update_status( 'Priority ERP', $body_array["ORDNAME"], $order->id, $user->ID );
 			}
