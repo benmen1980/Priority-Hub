@@ -17,12 +17,12 @@ defined('ABSPATH') or die('No direct script access!'); ?>
 		</li>
 		<li>
 			<a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=konimbo'); ?>" class="<?php if($this->get('tab') == 'konimbo') echo 'active'; ?>">
-				<?php _e('Konimbo', 'p18a'); ?>
+				<?php _e('konimbo', 'p18a'); ?>
 			</a>
 		</li>
 		<li>
 			<a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=shopify'); ?>" class="<?php if($this->get('tab') == 'shopify') echo 'active'; ?>">
-				<?php _e('Shopify', 'p18a'); ?>
+				<?php _e('shopify', 'p18a'); ?>
 			</a>
 		</li>
 		<li>
@@ -32,7 +32,7 @@ defined('ABSPATH') or die('No direct script access!'); ?>
 		</li>
         <li>
             <a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=istore'); ?>" class="<?php if($this->get('tab') == 'istore') echo 'active'; ?>">
-                <?php _e('iStore', 'p18a'); ?>
+                <?php _e('istore', 'p18a'); ?>
             </a>
         </li>
 

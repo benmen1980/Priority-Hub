@@ -47,7 +47,7 @@ class Konimbo extends \Priority_Hub {
 	function get_orders_by_user( $user ) {
 		// this function return the orders as array, if error return null
 		// the funciton heandles the error internally
-		//echo 'Getting orders from  Konimbo...<br>';
+		//echo 'Getting orders from  konimbo...<br>';
 		$token = get_user_meta( $user->ID, 'konimbo_token', true );
 		/*if(empty($token)){
 			$token            = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
@@ -99,17 +99,17 @@ class Konimbo extends \Priority_Hub {
 			$args = array_merge( $args, $options );
 		}
 		$response = wp_remote_request( $konimbo_url, $args );
-		$subject = 'Konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
+		$subject = 'konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
 
 		if ( is_wp_error( $response ) ) {
 			//echo 'internal server error<br>';
-			//echo 'Konimbo error: '.$response->get_error_message();
+			//echo 'konimbo error: '.$response->get_error_message();
 			$this->sendEmailError($subject, $response->get_error_message() );
 		} else {
 			$respone_code    = (int) wp_remote_retrieve_response_code( $response );
 			$respone_message = $response['body'];
 			If ( $respone_code <= 201 ) {
-				//echo 'Konimbo ok!!!<br>';
+				//echo 'konimbo ok!!!<br>';
 				$orders = json_decode( $response['body'] );
 				if ( $this->debug ) {
 					$orders = [ json_decode( $response['body'] ) ];
@@ -125,11 +125,11 @@ class Konimbo extends \Priority_Hub {
 				return null;
 			}
 		}
-	} // return array of Konimbo orders
+	} // return array of konimbo orders
     function get_receipts_by_user( $user ) {
         // this function return the orders as array, if error return null
         // the function handles the error internally
-        //echo 'Getting orders from  Konimbo...<br>';
+        //echo 'Getting orders from  konimbo...<br>';
         $token = get_user_meta( $user->ID, 'konimbo_token', true );
         $last_sync_time = get_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', true );
         $konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
@@ -160,17 +160,17 @@ class Konimbo extends \Priority_Hub {
             $args = array_merge( $args, $options );
         }
         $response = wp_remote_request( $konimbo_url, $args );
-        $subject = 'Konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
+        $subject = 'konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
 
         if ( is_wp_error( $response ) ) {
             //echo 'internal server error<br>';
-            //echo 'Konimbo error: '.$response->get_error_message();
+            //echo 'konimbo error: '.$response->get_error_message();
             $this->sendEmailError($subject, $response->get_error_message() );
         } else {
             $respone_code    = (int) wp_remote_retrieve_response_code( $response );
             $respone_message = $response['body'];
             If ( $respone_code <= 201 ) {
-                //echo 'Konimbo ok!!!<br>';
+                //echo 'konimbo ok!!!<br>';
                 $orders = json_decode( $response['body'] );
                 if ( $this->debug ) {
                     $orders = [ json_decode( $response['body'] ) ];
@@ -186,7 +186,7 @@ class Konimbo extends \Priority_Hub {
                 return null;
             }
         }
-    } // return array of Konimbo orders
+    } // return array of konimbo orders
 	function process_orders( $orders, $user ) {
 		// this function return array of all responses one per order
 		$index = 0;
@@ -213,7 +213,7 @@ class Konimbo extends \Priority_Hub {
 				);
 				// Insert the post into the database
 				wp_insert_post( $my_post );
-				// update Konimbo status and Priority sales order number
+				// update konimbo status and Priority sales order number
 				$this->update_status( 'Priority ERP', $body_array["ORDNAME"], $order->id, $user->ID );
 			}
 			if ( ! $response['status'] || $response['code'] >= 400 ) {
@@ -263,7 +263,7 @@ class Konimbo extends \Priority_Hub {
                 );
                 // Insert the post into the database
                 wp_insert_post( $my_post );
-                // update Konimbo status and Priority sales order number
+                // update konimbo status and Priority sales order number
                 //$this->update_status( 'Priority ERP', $body_array["IVNUM"], $order->id, $user->ID );
             }
             if ( ! $response['status'] || $response['code'] >= 400 ) {
@@ -385,7 +385,7 @@ class Konimbo extends \Priority_Hub {
 		$data['PAYMENTDEF_SUBFORM'] = [
 			'PAYMENTCODE' => $payment_code,
 			'QPRICE'      => (float) $payment->single_payment,
-			// Konimbo can handle multi paymnets so this might be modified
+			// konimbo can handle multi paymnets so this might be modified
 			//'PAYACCOUNT'  => '',
 			//'PAYCODE'     => '',
 			'PAYACCOUNT'  => $credit_cart_payments->last_4d,
@@ -440,7 +440,7 @@ class Konimbo extends \Priority_Hub {
             'PAYMENTCODE' => $payment_code,
             'QPRICE'      => (float) $payment->single_payment,
             'PAYDATE'     => date('Y-m-d', strtotime($order->created_at)),
-            // Konimbo can handle multi paymnets so this might be modified
+            // konimbo can handle multi paymnets so this might be modified
             //'PAYACCOUNT'  => '',
             //'PAYCODE'     => '',
             'PAYACCOUNT'  => $credit_cart_payments->last_4d,
@@ -475,7 +475,7 @@ class Konimbo extends \Priority_Hub {
 					$response_code = (int) $response['code'];
 					$response_body = json_decode( $response['body'] );
 					if ( $response_code >= 200 & $response_code <= 201 ) {
-						$message .=  'New Priority receipt ' . $response_body->IVNUM.' places successfully for Konimbo order '.$response_body->BOOKNUM.'<br>';
+						$message .=  'New Priority receipt ' . $response_body->IVNUM.' places successfully for konimbo order '.$response_body->BOOKNUM.'<br>';
 					}
 					if ( $response_code >= 400 && $response_code < 500 ) {
 						$is_error = true;
@@ -533,7 +533,7 @@ class Konimbo extends \Priority_Hub {
 		$response = wp_remote_request( $konimbo_url, $args );
 
 		$emails  = [ $user->user_email ];
-		$subject = 'Konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
+		$subject = 'konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
 
 		if ( is_wp_error( $response ) ) {
 			echo 'internal server error<br>';
@@ -546,7 +546,7 @@ class Konimbo extends \Priority_Hub {
 			$respone_code    = (int) wp_remote_retrieve_response_code( $response );
 			$respone_message = $response['body'];
 			If ( $respone_code <= 201 ) {
-				//echo 'Konimbo ok!!!<br>';
+				//echo 'konimbo ok!!!<br>';
 				if ($this->debug) {
 					$orders = [ json_decode( $response['body'] ) ];
 				}
@@ -564,14 +564,14 @@ class Konimbo extends \Priority_Hub {
 
 
 	}
-	// post type Konimbo order
+	// post type konimbo order
 	function custom_post_type() {
 
 		$labels = array(
-			'name'                  => _x( 'Konimbo Orders', 'Post Type General Name', 'text_domain' ),
-			'singular_name'         => _x( 'Konimbo Order', 'Post Type Singular Name', 'text_domain' ),
-			'menu_name'             => __( 'Konimbo Orders', 'text_domain' ),
-			'name_admin_bar'        => __( 'Konimbo Order', 'text_domain' ),
+			'name'                  => _x( 'konimbo Orders', 'Post Type General Name', 'text_domain' ),
+			'singular_name'         => _x( 'konimbo Order', 'Post Type Singular Name', 'text_domain' ),
+			'menu_name'             => __( 'konimbo Orders', 'text_domain' ),
+			'name_admin_bar'        => __( 'konimbo Order', 'text_domain' ),
 			'archives'              => __( 'Item Archives', 'text_domain' ),
 			'attributes'            => __( 'Item Attributes', 'text_domain' ),
 			'parent_item_colon'     => __( 'Parent Item:', 'text_domain' ),
@@ -597,8 +597,8 @@ class Konimbo extends \Priority_Hub {
 			'filter_items_list'     => __( 'Filter items list', 'text_domain' ),
 		);
 		$args   = array(
-			'label'               => __( 'Konimbo Order', 'text_domain' ),
-			'description'         => __( 'Konimbo order log', 'text_domain' ),
+			'label'               => __( 'konimbo Order', 'text_domain' ),
+			'description'         => __( 'konimbo order log', 'text_domain' ),
 			'labels'              => $labels,
 			'supports'            => array( 'title', 'editor' ),
 			'taxonomies'          => array( 'PriorityOrder', 'OrderID', 'CustomerName' ),

@@ -21,7 +21,7 @@ echo ('<br><br>');
 
         <br>
         <?php
-        //<input type="submit" value="Click here to sync Konimbo to Priority"> 4567567
+        //<input type="submit" value="Click here to sync konimbo to Priority"> 4567567
 
         wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
         submit_button('Get Orders');

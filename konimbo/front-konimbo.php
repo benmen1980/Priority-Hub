@@ -1,6 +1,6 @@
 <?php
 
-// Konimbo options
+// konimbo options
 echo ('<br><br>');
 
 ?>
@@ -78,7 +78,7 @@ if ( isset( $_POST['submit_order'] ) & !empty($_POST['order'])){
 	$messages =  Konimbo::instance()->processResponse($responses);
 	$message = $messages[$user->ID];
 	$emails  = [ $user->user_email ];
-	$subject = 'Priority Konimbo Orders API error ';
+	$subject = 'Priority konimbo Orders API error ';
 	if (true == $message['is_error']) {
 		Konimbo::instance()->sendEmailError($subject, $message['message']);
 	}
@@ -92,7 +92,7 @@ if ( isset( $_POST['submit_receipt'] ) & !empty($_POST['receipt'])){
     $messages =  Konimbo::instance()->processResponse($responses);
     $message = $messages[$user->ID];
     $emails  = [ $user->user_email ];
-    $subject = 'Priority Konimbo Receipts API error ';
+    $subject = 'Priority konimbo Receipts API error ';
     if (true == $message['is_error']) {
         Konimbo::instance()->sendEmailError($subject, $message['message']);
     }

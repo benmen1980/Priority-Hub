@@ -1,5 +1,5 @@
 <?php
-class Shopify extends \Priority_Hub {
+class istore extends \Priority_Hub {
 public static $instance;
 public  $debug;
 public static function instance()
@@ -23,7 +23,7 @@ function get_orders_all_users() {
     $args = array(
     'order'   => 'DESC',
     'orderby' => 'user_registered',
-    'meta_key' => 'shopify_activate_sync',
+    'meta_key' => 'istore_activate_sync',
     'meta_value' => true
     );
     // The User Query
@@ -31,7 +31,7 @@ function get_orders_all_users() {
     // The User Loop
     if ( ! empty( $user_query->results ) ) {
         foreach ( $user_query->results as $user ) {
-            $activate_sync = get_user_meta( $user->ID, 'shopify_activate_sync',true );
+            $activate_sync = get_user_meta( $user->ID, 'istore_active',true );
             if ( $activate_sync ) {
                 //echo 'Start sync  ' . get_user_meta( $user->ID, 'nickname', true ) . '<br>';
                 ini_set( 'MAX_EXECUTION_TIME', 0 );
@@ -46,26 +46,26 @@ function get_orders_all_users() {
 function get_orders_by_user( $user ) {
     // this function return the orders as array, if error return null
     // the function handles the error internally
-    //echo 'Getting orders from  Shopify...<br>';
-    $last_sync_time = get_user_meta( $user->ID, 'shopify_last_sync_date', true );
+    //echo 'Getting orders from  istore...<br>';
+    $last_sync_time = get_user_meta( $user->ID, 'istore_last_sync_date', true );
     $order_id         = '';
     //$orders_limit     = '?created_at_min=2020-06-15T00:00:00Z';
     $orders_limit  = '?created_at_min=' . $last_sync_time;
-    $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json'.$orders_limit;
+    $istore_base_url = 'https://'.get_user_meta( $user->ID, 'istore_url', true ).'/admin/api/2020-04/orders.json'.$orders_limit;
     $new_sync_time = date( "c" );
     if ( !$this->debug ) {
-        update_user_meta( $user->ID, 'shopify_last_sync_date', $new_sync_time );
+        update_user_meta( $user->ID, 'istore_last_sync_date', $new_sync_time );
     }
     $filter_status = '&payment_status=אשראי - מלא';
     // debug url
     if ($this->debug) {
-        $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json?name='.$this->order;
+        $istore_base_url = 'https://'.get_user_meta( $user->ID, 'istore_url', true ).'/admin/api/2020-04/orders.json?name='.$this->order;
     }
     $method = 'GET';
     //$YOUR_USERNAME = 'aa4f3bc167e3b86c475eb2aefac63bf3';
-    $YOUR_USERNAME = get_user_meta( $user->ID, 'shopify_username', true );
+    $YOUR_USERNAME = get_user_meta( $user->ID, 'istore_username', true );
     //$YOUR_PASSWORD = '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';
-    $YOUR_PASSWORD = get_user_meta( $user->ID, 'shopify_password', true );
+    $YOUR_PASSWORD = get_user_meta( $user->ID, 'istore_password', true );
     $args   = [
         'headers' => array(
             'Authorization' => 'Basic ' . base64_encode( $YOUR_USERNAME . ':' . $YOUR_PASSWORD )
@@ -79,11 +79,11 @@ function get_orders_by_user( $user ) {
     if ( ! empty( $options ) ) {
         $args = array_merge( $args, $options );
     }
-    $response = wp_remote_request( $shopify_base_url, $args );
-    $subject = 'Shopify Error for user ' . get_user_meta( $user->ID, 'nickname', true );
+    $response = wp_remote_request( $istore_base_url, $args );
+    $subject = 'istore Error for user ' . get_user_meta( $user->ID, 'nickname', true );
     if ( is_wp_error( $response ) ) {
         //echo 'internal server error<br>';
-        //echo 'Konimbo error: '.$response->get_error_message();
+        //echo 'konimbo error: '.$response->get_error_message();
         $this->sendEmailError($subject, $response->get_error_message() );
     } else {
         $respone_code    = (int) wp_remote_retrieve_response_code( $response );
@@ -96,7 +96,7 @@ function get_orders_by_user( $user ) {
             return $orders;
         }
         if ( $respone_code >= 400 && $respone_code <= 499 &&  $respone_code != 404 ) {
-            $error = $respone_message . '<br>' . $shopify_base_url;
+            $error = $respone_message . '<br>' . $istore_base_url;
             $this->sendEmailError( $subject, $error );
             return null;
         }
@@ -104,7 +104,7 @@ function get_orders_by_user( $user ) {
             return null;
         }
     }
-} // return array of Shopify orders
+} // return array of istore orders
 function process_orders( $orders, $user ) {
 // this function return array of all responses one per order
 $index = 0;
@@ -128,7 +128,7 @@ $response_body = json_decode($response['body']);
 $body_array = json_decode( $response["body"], true );
 // Create post object
 $my_post = array(
-    'post_type'    => 'shopify_order',
+    'post_type'    => 'istore_order',
     'post_title'   => $order->name . ' ' . $order->billing_address->first_name.' '.$order->billing_address->last_name,
     'post_content' => json_encode( $response["body"] ),
     'post_status'  => 'publish',
@@ -170,7 +170,7 @@ $data        = [
 'CUSTNAME' => $cust_number,
 'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
 //'CURDATE'  => date('Y-m-d', strtotime($order->get_date_created())),
-'BOOKNUM'  => 'SHOPIFY'.$order->name,
+'BOOKNUM'  => 'istore'.$order->name,
 //'DETAILS'  => trim(preg_replace('/\s+/', ' ', $order->note))
 ];
 // billing customer details
@@ -239,7 +239,7 @@ $data['ORDERITEMS_SUBFORM'][] = [
 
 // payment info
 $payment              = $order->payment_details;
-$shopify_cards_dictionary   = array(
+$istore_cards_dictionary   = array(
 1 => '1',  // Isracard
 2 => '5',  // Visa
 3 => '3',  // Diners
@@ -251,7 +251,7 @@ $payment_code               = $payment->credit_card_bin;
 $data['PAYMENTDEF_SUBFORM'] = [
 'PAYMENTCODE' => $payment_code,
 'QPRICE'      => (float) $order->total_price_set->presentment_money->amount,
-// Shopify can handle multi paymnets so this might be modified
+// istore can handle multi paymnets so this might be modified
 //'PAYACCOUNT'  => '',
 //'PAYCODE'     => '',
 'PAYACCOUNT'  => $payment->credit_card_number,
@@ -279,8 +279,8 @@ function post_otc_to_priority( $order, $user ) {
             'CUSTNAME' => $cust_number,
             'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
             'IVDATE'  => date('Y-m-d', strtotime($order->created_at)),
-            'BOOKNUM'  => 'SHOPIFY'.$order->name,
-            'DETAILS'  => 'SHOPIFY'.$order->name,
+            'BOOKNUM'  => 'istore'.$order->name,
+            'DETAILS'  => 'istore'.$order->name,
         ];
 // billing customer details
         $customer_data                = [
@@ -345,7 +345,7 @@ function post_otc_to_priority( $order, $user ) {
         }
 // payment info
         $payment              = $order->payment_details;
-        $shopify_cards_dictionary   = array(
+        $istore_cards_dictionary   = array(
             1 => '1',  // Isracard
             2 => '5',  // Visa
             3 => '3',  // Diners
@@ -357,7 +357,7 @@ function post_otc_to_priority( $order, $user ) {
         $data['EPAYMENT2_SUBFORM'][] = [
             'PAYMENTCODE' => $payment_code,
             'QPRICE'      => (float) $order->total_price_set->presentment_money->amount,
-// Shopify can handle multi paymnets so this might be modified
+// istore can handle multi paymnets so this might be modified
 //'PAYACCOUNT'  => '',
 //'PAYCODE'     => '',
             'PAYACCOUNT'  => $payment->credit_card_number,
@@ -396,7 +396,7 @@ if(isset($response['code'])){
 $response_code = (int) $response['code'];
 $response_body = json_decode( $response['body'] );
 if ( $response_code >= 200 & $response_code <= 201 ) {
-$message .=  'New Priority Entity ' . $response_body->ORDNAME.$response_body->IVNUM.' places successfully for Shopify order '.$response_body->BOOKNUM.'<br>';
+$message .=  'New Priority Entity ' . $response_body->ORDNAME.$response_body->IVNUM.' places successfully for istore order '.$response_body->BOOKNUM.'<br>';
 }
 if ( $response_code >= 400 && $response_code < 500 ) {
 $is_error = true;
@@ -454,7 +454,7 @@ $args = array_merge( $args, $options );
 $response = wp_remote_request( $konimbo_url, $args );
 
 $emails  = [ $user->user_email ];
-$subject = 'Shopify Error for user ' . get_user_meta( $user->ID, 'nickname', true );
+$subject = 'istore Error for user ' . get_user_meta( $user->ID, 'nickname', true );
 
 if ( is_wp_error( $response ) ) {
 echo 'internal server error<br>';
@@ -467,12 +467,12 @@ $this->sendEmailError($subject, $error);
 $respone_code    = (int) wp_remote_retrieve_response_code( $response );
 $respone_message = $response['body'];
 If ( $respone_code <= 201 ) {
-//echo 'Konimbo ok!!!<br>';
+//echo 'konimbo ok!!!<br>';
 if ($this->debug) {
 $orders = [ json_decode( $response['body'] ) ];
 }
 } elseif ( $respone_code >= 400 && $respone_code <= 499 ) {
-echo $respone_code . ' Shopify error occures <br>';
+echo $respone_code . ' istore error occures <br>';
 echo $respone_message . '<br>';
 echo $konimbo_url . '<br>';
 if ( $respone_code != 404 ) {
@@ -488,10 +488,10 @@ $this->sendEmailError( $subject, $error );
 public function custom_post_type() {
 
 $labels = array(
-'name'                  => _x( 'Shopify Orders', 'Post Type General Name', 'text_domain' ),
-'singular_name'         => _x( 'Shopify Order', 'Post Type Singular Name', 'text_domain' ),
-'menu_name'             => __( 'Shopify Orders', 'text_domain' ),
-'name_admin_bar'        => __( 'Shopify Order', 'text_domain' ),
+'name'                  => _x( 'istore Orders', 'Post Type General Name', 'text_domain' ),
+'singular_name'         => _x( 'istore Order', 'Post Type Singular Name', 'text_domain' ),
+'menu_name'             => __( 'istore Orders', 'text_domain' ),
+'name_admin_bar'        => __( 'istore Order', 'text_domain' ),
 'archives'              => __( 'Item Archives', 'text_domain' ),
 'attributes'            => __( 'Item Attributes', 'text_domain' ),
 'parent_item_colon'     => __( 'Parent Item:', 'text_domain' ),
@@ -517,8 +517,8 @@ $labels = array(
 'filter_items_list'     => __( 'Filter items list', 'text_domain' ),
 );
 $args   = array(
-'label'               => __( 'Shopify Order', 'text_domain' ),
-'description'         => __( 'Shopify order log', 'text_domain' ),
+'label'               => __( 'istore Order', 'text_domain' ),
+'description'         => __( 'istore order log', 'text_domain' ),
 'labels'              => $labels,
 'supports'            => array( 'title', 'editor' ),
 'taxonomies'          => array( 'PriorityOrder', 'OrderID', 'CustomerName' ),
@@ -535,10 +535,10 @@ $args   = array(
 'publicly_queryable'  => true,
 'capability_type'     => 'post',
 );
-register_post_type( 'shopify_order', $args );
+register_post_type( 'istore_order', $args );
 }
 function register_tag() {
-    register_taxonomy_for_object_type( 'post_tag', 'shopify_order' );
+    register_taxonomy_for_object_type( 'post_tag', 'istore_order' );
 }
 public function sendEmailError($subject = '', $error = '')
 {

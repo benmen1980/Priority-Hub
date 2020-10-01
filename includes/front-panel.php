@@ -27,12 +27,12 @@ function priority_hub_front_panel(){
             </li>
             <li>
                 <a href="<?php echo $current_url . '/?tab=konimbo'; ?>" class="<?php if($tab == 'konimbo') echo 'active'; ?>">
-					<?php _e('Konimbo', 'p18a'); ?>
+					<?php _e('konimbo', 'p18a'); ?>
                 </a>
             </li>
             <li>
                 <a href="<?php echo $current_url . '/?tab=shopify'; ?>" class="<?php if($tab == 'shopify') echo 'active'; ?>">
-					<?php _e('Shopify', 'p18a'); ?>
+					<?php _e('shopify', 'p18a'); ?>
                 </a>
             </li>
             <li>

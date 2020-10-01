@@ -198,14 +198,14 @@ if( function_exists('acf_add_local_field_group') ):
 
     acf_add_local_field_group(array(
         'key' => 'group_5f4ffe55a88fe',
-        'title' => 'Shopify User Control',
+        'title' => 'shopify User Control',
         'fields' => array(
             array(
                 'key' => 'field_5f4ffe62418d1',
-                'label' => 'Active Sync with Shopify',
+                'label' => 'Active Sync with shopify',
                 'name' => 'shopify_activate_sync',
                 'type' => 'true_false',
-                'instructions' => 'Check this box in order to enable sync with Shopify',
+                'instructions' => 'Check this box in order to enable sync with shopify',
                 'required' => 0,
                 'conditional_logic' => 0,
                 'wrapper' => array(
@@ -221,7 +221,7 @@ if( function_exists('acf_add_local_field_group') ):
             ),
             array(
                 'key' => 'field_5f4ffe94418d2',
-                'label' => 'Shopify Store URL',
+                'label' => 'shopify Store URL',
                 'name' => 'shopify_url',
                 'type' => 'text',
                 'instructions' => '',
@@ -347,14 +347,14 @@ if( function_exists('acf_add_local_field_group') ):
 
     acf_add_local_field_group(array(
         'key' => 'group_5eebdc1d3981b',
-        'title' => 'Konimbo User Control',
+        'title' => 'konimbo User Control',
         'fields' => array(
             array(
                 'key' => 'field_5eebdfb0162a0',
-                'label' => 'Activate sync with Konimbo ?',
+                'label' => 'Activate sync with konimbo ?',
                 'name' => 'konimbo_activate_sync',
                 'type' => 'true_false',
-                'instructions' => 'Check this box in order to enable sync with Konimbo',
+                'instructions' => 'Check this box in order to enable sync with konimbo',
                 'required' => 0,
                 'conditional_logic' => 0,
                 'wrapper' => array(
@@ -370,7 +370,7 @@ if( function_exists('acf_add_local_field_group') ):
             ),
             array(
                 'key' => 'field_5eebdc28146c6',
-                'label' => 'Customer Token in Konimbo system',
+                'label' => 'Customer Token in konimbo system',
                 'name' => 'konimbo_token',
                 'type' => 'text',
                 'instructions' => 'Enter the token you received from customer service.',
@@ -464,14 +464,14 @@ if( function_exists('acf_add_local_field_group') ):
         'active' => true,
         'description' => '',
     ));
-    // iStore
+    // istore
     acf_add_local_field_group(array(
         'key' => 'group_5f73b71ca848c',
-        'title' => 'iStore user control',
+        'title' => 'istore user control',
         'fields' => array(
             array(
                 'key' => 'field_5f73b72858c73',
-                'label' => 'Active Sync with iStore (Isracard)',
+                'label' => 'Active Sync with istore (Isracard)',
                 'name' => 'istore_active',
                 'type' => 'true_false',
                 'instructions' => '',

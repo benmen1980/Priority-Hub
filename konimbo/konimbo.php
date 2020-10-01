@@ -1,6 +1,6 @@
 <?php
 
-// Konimbo options
+// konimbo options
 	echo ('<br><br>');
 
 	?>
@@ -21,7 +21,7 @@
         <input type="text" name="order" value=""><span>Post single Order</span></div>
         <br>
         <?php
-        //<input type="submit" value="Click here to sync Konimbo to Priority"> 4567567
+        //<input type="submit" value="Click here to sync konimbo to Priority"> 4567567
 
         wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
         submit_button('Get Orders');
@@ -61,8 +61,8 @@ if ( isset( $_POST['submit'] ) ) {
 	foreach($messages as $user_id => $message){
 	    $user = get_user_by('ID',$user_id);
 		if (true == $message['is_error']) {
-			$subject = 'Konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
-		//	Konimbo::instance()->sendEmailError($subject, $message);
+			$subject = 'konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
+		//	konimbo::instance()->sendEmailError($subject, $message);
 		}
     echo $message['message'];
     }

@@ -1,6 +1,6 @@
 <?php
 include_once (PHUB_DIR.'shopify/shopify-class.php');
-// Shopify options
+// shopify options
 echo ('<br><br>');
 ?>
     <div>
@@ -61,7 +61,7 @@ if ( isset( $_POST['submit'] ) & !empty($_POST['order'])){
     $messages =  Shopify::instance()->processResponse($responses);
     $message = $messages[$user->ID];
     $emails  = [ $user->user_email ];
-    $subject = 'Priority Shopify API error ';
+    $subject = 'Priority shopify API error ';
     if (true == $message['is_error']) {
         Shopify::instance()->sendEmailError($subject, $message['message']);
     }
