@@ -13,8 +13,10 @@ class Konimbo extends \Priority_Hub {
 	}
 	public function __construct() {
 		add_action( 'init', array($this,'custom_post_type'), 0 );
+        add_action( 'init', array($this,'custom_post_type_receipt'), 0 );
 		add_action('init', array($this,'register_tag'));
 		add_action( 'admin_post_sync_konimbo', array($this,'process_all_users'));
+        add_action('add_meta_boxes', array($this,'receipt_data_form_meta_box'));
 	}
 	public function run()
 	{
@@ -141,8 +143,7 @@ class Konimbo extends \Priority_Hub {
         $token = get_user_meta( $user->ID, 'konimbo_token', true );
         $last_sync_time = get_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', true );
         $daysback = 3;
-        $stamp = mktime(0 - $daysback * 24, 0, 0);
-        $last_sync_time = date(DATE_ATOM,$stamp);
+        $last_sync_time = date(DATE_ATOM, mktime(0, 0, 0, date("m") , date("d")-$daysback,date("Y")));
         $konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
         $order_id         = '';
         //$orders_limit     = '&created_at_min=2020-06-15T00:00:00Z';
@@ -260,10 +261,10 @@ class Konimbo extends \Priority_Hub {
         foreach ( $receipts as $receipt ) {
             // check if receipt already been posted, and continue
             $args = array(
-                'post_type' => 'konimbo_order',
+                'post_type' => 'konimbo_receipt',
                 'meta_query' => array(
                     array(
-                        'key' => 'konimbo_order_number',
+                        'key' => 'konimbo_receipts_number',
                         'value' => $receipt->id,
                         'compare' => '=',
                     )
@@ -273,14 +274,7 @@ class Konimbo extends \Priority_Hub {
             $the_query = new WP_Query( $args );
             // The Loop
             if ( $the_query->have_posts() ) {
-                $the_query->the_post();
-                $order_post_id = get_the_ID();
-                $is_receipt = get_post_meta($order_post_id,'konimbo_is_receipts_posted',true);
-                $ordernumber = get_post_meta($order_post_id,'konimbo_order_number',true);
-                if($is_receipt) {
                 continue;
-                }
-                update_post_meta($order_post_id,'konimbo_is_receipts_posted',true);
             }
             $response = $this->post_receipt_to_priority( $receipt, $user );
             $responses[$receipt->id]= $response;
@@ -289,7 +283,7 @@ class Konimbo extends \Priority_Hub {
                 $body_array = json_decode( $response["body"], true );
                 // Create post object
                 $my_post = array(
-                    'post_type'    => 'konimbo_order',
+                    'post_type'    => 'konimbo_receipt',
                     'post_title'   => $receipt->name . ' ' . $receipt->id,
                     'post_content' => json_encode( $response["body"] ),
                     'post_status'  => 'publish',
@@ -297,7 +291,8 @@ class Konimbo extends \Priority_Hub {
                     'tags_input'   => array( $body_array["IVNUM"] )
                 );
                 // Insert the post into the database
-                wp_insert_post( $my_post );
+                $receipt_id = wp_insert_post( $my_post );
+                update_post_meta($receipt_id,'konimbo_receipts_number',$receipt->id);
                 // update konimbo status and Priority sales order number
                 //$this->update_status( 'Priority ERP', $body_array["IVNUM"], $order->id, $user->ID );
             }
@@ -446,9 +441,9 @@ class Konimbo extends \Priority_Hub {
         $data        = [
             'ACCNAME' => $cust_number,
             'CDES'     => $order->name,
-            'IVDATE'  => date('Y-m-d', strtotime($order->created_at)),
+            'IVDATE'   => date('Y-m-d', strtotime($order->created_at)),
             'BOOKNUM'  => 'KNB-'.$order->id,
-            //'DETAILS'  => trim(preg_replace('/\s+/', ' ', $order->note))
+            'DETAILS'  => 'KNB-'.$order->id
         ];
         // billing customer details
         $customer_data                = [
@@ -463,12 +458,12 @@ class Konimbo extends \Priority_Hub {
         $credit_cart_payments = $order->credit_card_details;
 
         $konimbo_cards_dictionary   = array(
-            1 => '1',  // Isracard
-            2 => '5',  // Visa
-            3 => '3',  // Diners
-            4 => '4',  // Amex
-            5 => '5',  // JCB
-            6 => '6'   // Leumi Card
+            1 => '12',  // Isracard
+            2 => '16',  // Visa
+            3 => '11',  // Diners
+            4 => '5',  // Amex
+            5 => '17',  // JCB
+            6 => '46'   // Leumi Card
         );
         $payment_code               = $konimbo_cards_dictionary[ $credit_cart_payments->issued_company_number ];
         $data['TPAYMENT2_SUBFORM'][] = [
@@ -655,6 +650,61 @@ class Konimbo extends \Priority_Hub {
 
 
 	}
+    function custom_post_type_receipt() {
+
+        $labels = array(
+            'name'                  => _x( 'konimbo Receipts', 'Post Type General Name', 'text_domain' ),
+            'singular_name'         => _x( 'konimbo Receipt', 'Post Type Singular Name', 'text_domain' ),
+            'menu_name'             => __( 'konimbo Receipt', 'text_domain' ),
+            'name_admin_bar'        => __( 'konimbo Receipt', 'text_domain' ),
+            'archives'              => __( 'Item Archives', 'text_domain' ),
+            'attributes'            => __( 'Item Attributes', 'text_domain' ),
+            'parent_item_colon'     => __( 'Parent Item:', 'text_domain' ),
+            'all_items'             => __( 'All Items', 'text_domain' ),
+            'add_new_item'          => __( 'Add New Item', 'text_domain' ),
+            'add_new'               => __( 'Add New', 'text_domain' ),
+            'new_item'              => __( 'New Item', 'text_domain' ),
+            'edit_item'             => __( 'Edit Item', 'text_domain' ),
+            'update_item'           => __( 'Update Item', 'text_domain' ),
+            'view_item'             => __( 'View Item', 'text_domain' ),
+            'view_items'            => __( 'View Items', 'text_domain' ),
+            'search_items'          => __( 'Search Item', 'text_domain' ),
+            'not_found'             => __( 'Not found', 'text_domain' ),
+            'not_found_in_trash'    => __( 'Not found in Trash', 'text_domain' ),
+            'featured_image'        => __( 'Featured Image', 'text_domain' ),
+            'set_featured_image'    => __( 'Set featured image', 'text_domain' ),
+            'remove_featured_image' => __( 'Remove featured image', 'text_domain' ),
+            'use_featured_image'    => __( 'Use as featured image', 'text_domain' ),
+            //'insert_into_item'      => __( 'Insert into item', 'text_domain' ),
+            'uploaded_to_this_item' => __( 'Uploaded to this item', 'text_domain' ),
+            'items_list'            => __( 'Items list', 'text_domain' ),
+            'items_list_navigation' => __( 'Items list navigation', 'text_domain' ),
+            'filter_items_list'     => __( 'Filter items list', 'text_domain' ),
+        );
+        $args   = array(
+            'label'               => __( 'konimbo Receipt', 'text_domain' ),
+            'description'         => __( 'konimbo receipt log', 'text_domain' ),
+            'labels'              => $labels,
+            'supports'            => array( 'title', 'editor' ),
+            'taxonomies'          => array( 'PriorityReceipt', 'ReceiptID', 'CustomerName' ),
+            'hierarchical'        => false,
+            'public'              => true,
+            'show_ui'             => true,
+            'show_in_menu'        => true,
+            'menu_position'       => 23,
+            'show_in_admin_bar'   => true,
+            'show_in_nav_menus'   => true,
+            'can_export'          => true,
+            'has_archive'         => true,
+            'exclude_from_search' => false,
+            'publicly_queryable'  => true,
+            'capability_type'     => 'post',
+        );
+        register_post_type( 'konimbo_receipt', $args );
+        //	register_taxonomy_for_object_type( 'post_tag', 'portfolio' );
+
+
+    }
 	function register_tag() {
 	    register_taxonomy_for_object_type( 'post_tag', 'konimbo_order' );
 
@@ -677,4 +727,10 @@ class Konimbo extends \Priority_Hub {
 
 		wp_mail( $to,get_bloginfo('name').' '. $subject, $error, $headers );
 	}
+    function receipt_data_form_meta_box() {
+        add_meta_box('konimbo-receipt-meta-box-id', 'Konimbo Receipt Number', [$this,'receipt_data'], 'konimbo_receipt', 'normal', 'high');
+    }
+    function receipt_data($post) {
+        echo get_post_meta($post->ID, 'konimbo_receipts_number', true);
+    }
 }
