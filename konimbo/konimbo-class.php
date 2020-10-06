@@ -438,10 +438,12 @@ class Konimbo extends \Priority_Hub {
 	}
     function post_receipt_to_priority( $order, $user ) {
         $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
+        $credit_cart_payments = $order->credit_card_details;
+        $receipt_date = date('Y-m-d', strtotime($credit_cart_payments->response_date));
         $data        = [
             'ACCNAME' => $cust_number,
             'CDES'     => $order->name,
-            'IVDATE'   => date('Y-m-d', strtotime($order->created_at)),
+            'IVDATE'   => !empty($receipt_date) ? $receipt_date : date('Y-m-d', strtotime($order->created_at)),
             'BOOKNUM'  => 'KNB-'.$order->id,
             'DETAILS'  => 'KNB-'.$order->id
         ];
@@ -455,7 +457,6 @@ class Konimbo extends \Priority_Hub {
 
         // payment info
         $payment              = $order->payments;
-        $credit_cart_payments = $order->credit_card_details;
 
         $konimbo_cards_dictionary   = array(
             1 => '12',  // Isracard
