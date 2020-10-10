@@ -74,7 +74,6 @@ class Konimbo extends \Priority_Hub {
 		}
 		$konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
 		$order_id         = '';
-		//$orders_limit     = '&created_at_min=2020-06-15T00:00:00Z';
 		$orders_limit  = '&created_at_min=' . $last_sync_time;
 		$new_sync_time = date( "c" );
 		if ( !$this->debug ) {
@@ -142,7 +141,7 @@ class Konimbo extends \Priority_Hub {
         //echo 'Getting orders from  konimbo...<br>';
         $token = get_user_meta( $user->ID, 'konimbo_token', true );
         $last_sync_time = get_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', true );
-        $daysback = 3;
+        $daysback = 1;
         $last_sync_time = date(DATE_ATOM, mktime(0, 0, 0, date("m") , date("d")-$daysback,date("Y")));
         $konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
         $order_id         = '';
@@ -153,10 +152,11 @@ class Konimbo extends \Priority_Hub {
             update_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', $new_sync_time );
         }
         $filter_status = '&payment_status=שולם';
+        $orders_limit     = '&created_at_min=2020-10-06T00:00:00Z&created_at_max=2020-10-07T00:00:00Z';
         $konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
         // debug url
         if ($this->debug) {
-            $order = $this->receipt;
+            $order = $this->order;
             $konimbo_url = 'https://api.konimbo.co.il/v1/orders/'.$order.'?token='.$token;
         }
         $method = 'GET';
@@ -459,28 +459,34 @@ class Konimbo extends \Priority_Hub {
         $payment              = $order->payments;
 
         $konimbo_cards_dictionary   = array(
-            1 => '12',  // Isracard
-            2 => '16',  // Visa
+            1 => '5',  // Isracard
+            2 => '4',  // Visa
             3 => '11',  // Diners
             4 => '5',  // Amex
             5 => '17',  // JCB
-            6 => '46'   // Leumi Card
+            6 => '14'   // Leumi Card
         );
+        $konimbo_number_of_payments_dictionary = array(
+            1 => '1',
+            2 => '2',
+            3 => '3',
+            4 => '4',
+            5 => '5'
+        );
+
         $payment_code               = $konimbo_cards_dictionary[ $credit_cart_payments->issued_company_number ];
         $data['TPAYMENT2_SUBFORM'][] = [
-            'PAYMENTCODE' => $payment_code,
-            'QPRICE'      => (float) $payment->single_payment,
-            'PAYDATE'     => date('Y-m-d', strtotime($order->created_at)),
-            // konimbo can handle multi paymnets so this might be modified
-            //'PAYACCOUNT'  => '',
-            //'PAYCODE'     => '',
-            'PAYACCOUNT'  => $credit_cart_payments->last_4d,
-            'VALIDMONTH'  => $credit_cart_payments->card_expiration,
-            'CCUID'       => $credit_cart_payments->credit_cart_token,
-            'CONFNUM'     => $credit_cart_payments->order_confirmation_id,
-            //'ROYY_NUMBEROFPAY' => $order_payments,
-            //'FIRSTPAY' => $order_first_payment,
-            //'ROYY_SECONDPAYMENT' => $order_periodical_payment
+            'PAYMENTCODE'    => $payment_code,
+            'QPRICE'         => (float)$order->total_price,
+            'PAYCODE'        => $konimbo_number_of_payments_dictionary[$payment->number_of_payments],
+            'FIRSTPAY'       => (float) $payment->special_first_payment,
+            //'OTHERPAYMENTS'  => (float)$payment->single_payment,
+            'PAYDATE'        => date('Y-m-d', strtotime($order->created_at)),
+            'PAYACCOUNT'     => $credit_cart_payments->last_4d,
+            'VALIDMONTH'     => $credit_cart_payments->card_expiration,
+            'CCUID'          => $credit_cart_payments->credit_cart_token,
+            'CONFNUM'        => $credit_cart_payments->order_confirmation_id,
+
 
         ];
 
