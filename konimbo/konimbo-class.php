@@ -486,6 +486,7 @@ class Konimbo extends \Priority_Hub {
             'VALIDMONTH'     => $credit_cart_payments->card_expiration,
             'CCUID'          => $credit_cart_payments->credit_cart_token,
             'CONFNUM'        => $credit_cart_payments->order_confirmation_id,
+	    'CARDNUM'        => $credit_cart_payments->shovar_number
 
 
         ];
