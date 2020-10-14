@@ -30,7 +30,7 @@ echo ('<br><br>');
                 <tr>
                     <td>Sync to Priority as</td>
                     <td>
-                        <select name="document" id="document">
+                        <select name="shopify_document" id="document">
                             <option selected="selected"></option>
                             <option value="order">Sales Order</option>
                             <option value="otc">Over The Counter Invoice</option>
@@ -51,20 +51,7 @@ wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
 if ( isset( $_POST['submit'] ) & !empty($_POST['order'])){
     // fetch data
     $user = wp_get_current_user();
-    Shopify::instance()->document = $_POST['shopify_document'];
-    Shopify::instance()->order = $_POST['order'];
-    Shopify::instance()->debug = true;
-    Shopify::instance()->generalpart = '';
-    // procees
-    $orders = Shopify::instance()->get_orders_by_user( $user );
-    $responses[$user->ID] = Shopify::instance()->process_orders($orders,$user);
-    $messages =  Shopify::instance()->processResponse($responses);
-    $message = $messages[$user->ID];
-    $emails  = [ $user->user_email ];
-    $subject = 'Priority shopify API error ';
-    if (true == $message['is_error']) {
-        Shopify::instance()->sendEmailError($subject, $message['message']);
-    }
+    $message  = Shopify::instance()->post_user_by_id($user->ID,$_POST['order'],$_POST['shopify_document']);
     echo $message['message'].'<br>';
 }
 
