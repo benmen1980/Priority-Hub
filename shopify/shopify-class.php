@@ -186,6 +186,7 @@ $shipping_data           = [
 'CUSTDES'   => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
 'PHONENUM'  => $order->shipping_address->phone,
 'ADDRESS'   => $order->shipping_address->address1,
+    'STATE'      => $order->shipping_address->city
 ];
 $data['SHIPTO2_SUBFORM'] = $shipping_data;
 
@@ -295,6 +296,7 @@ function post_otc_to_priority( $order, $user ) {
             'CUSTDES'   => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
             'PHONENUM'  => $order->shipping_address->phone,
             'ADDRESS'   => $order->shipping_address->address1,
+            'STATE'      => $order->shipping_address->city
         ];
         $data['SHIPTO2_SUBFORM'] = $shipping_data;
 
