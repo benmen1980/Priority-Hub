@@ -6,8 +6,8 @@ echo ('<br><br>');
 
     <form action="<?php echo esc_url( admin_url('admin.php?page=priority-hub&tab=shopify')); ?>" method="post">
         <input type="hidden" name="shopify_action" value="sync_shopify">
-        <div><input type="checkbox" name="shopify_debug" value="debug"><span>Debug</span></div>
         <div><input type="checkbox" name="shopify_generalpart" value="generalpart"><span>Post general item</span></div>
+        <div><input type="text" name="shopify_username"><span>User Name</span></div>
         <div>
             <select value="" name="shopify_document" id="shopify_document">
                 <option selected="selected"></option>
@@ -29,36 +29,18 @@ echo ('<br><br>');
         ?>
     </form>
 <?php
-if ( isset( $_POST['submit'] ) ) {
-    Shopify::instance()->document = $_POST['shopify_document'];
-    if(isset($_POST['shopify_generalpart'])){
-        Shopify::instance()->generalpart = true;
+if ( isset( $_POST['submit'] ) && isset($_POST['shopify_username'])&& isset($_POST['shopify_document'])){
+    $user = get_user_by('login',$_POST['shopify_username']);
+    $activate_sync = get_user_meta( $user->ID, 'shopify_activate_sync',true );
+    if(!$user){
+        echo 'Username does not exists';
     }
-    if(true == $_POST['shopify_debug'] || '' != $_POST['shopify_order']){
-        Shopify::instance()->debug = true;
-    }else{
-        Shopify::instance()->debug = false;
+    if(!$activate_sync){
+        echo 'User does not set to integrate with Shopify';
     }
-    if(isset($_POST['shopify_order'])){
-        Shopify::instance()->order = $_POST['shopify_order'];
-    }
-    $user_orders = Shopify::instance()->get_orders_all_users();
-    foreach($user_orders as $user_id => $orders){
-        $user = get_user_by('ID',$user_id);
-        $responses[$user_id] = Shopify::instance()->process_orders($orders,$user);
-    }
-    $messages =  Shopify::instance()->processResponse($responses);
-    if(empty($messages)){
-        wp_die('No data to process, you might dont have orders to post or error so check your email.');
-    }
-    foreach($messages as $user_id => $message){
-        $user = get_user_by('ID',$user_id);
-        if (true == $message['is_error']) {
-            $subject = 'shopify Error for user ' . get_user_meta( $user->ID, 'nickname', true );
-            //	shopify::instance()->sendEmailError($subject, $message);
-        }
-        echo $message['message'];
-    }
+    $shopify = new Shopify;
+    $message = $shopify->post_user_by_id($user->ID,$_POST['shopify_order'],$_POST['shopify_document']);
+    echo $message['message'];
 }
 ?>
 <hr>
