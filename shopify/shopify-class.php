@@ -2,6 +2,9 @@
 class Shopify extends \Priority_Hub {
 public static $instance;
 public  $debug;
+public $document;
+public $order;
+public $generalpart;
 public static function instance()
 {
 if (is_null(static::$instance)) {
@@ -14,6 +17,10 @@ public function __construct() {
 add_action( 'init', array($this,'custom_post_type'), 998 );
 add_action('init', array($this,'register_tag'),999);
 add_action( 'admin_post_sync_konimbo', array($this,'process_all_users'));
+add_action('shopify_action',array($this,'post_user_by_id'),1,3);
+// Magali
+    $args =  array( 2, null, 'otc' ) ;
+    wp_schedule_single_event(time(), 'shopify_action', $args);
 }
 public function run()
 {
@@ -59,7 +66,7 @@ function get_orders_by_user( $user ) {
     $filter_status = '&payment_status=אשראי - מלא';
     // debug url
     if ($this->debug) {
-        $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json?name='.$this->order;
+        $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json?name='.$this->order.'&status=any';
     }
     $method = 'GET';
     //$YOUR_USERNAME = 'aa4f3bc167e3b86c475eb2aefac63bf3';
@@ -558,4 +565,23 @@ $headers = [
 ];
 wp_mail( $to,get_bloginfo('name').' '. $subject, $error, $headers );
 }
+public function post_user_by_id($user_id,$order,$document){
+    $user = get_user_by('ID',$user_id);
+    $this->document = $document;
+    $this->order = $order;
+    $this->debug = null != $order;
+    $this->generalpart = '';
+    // process
+    $orders = $this->get_orders_by_user( $user );
+    $responses[$user->ID] = $this->process_orders($orders,$user);
+    $messages =  $this->processResponse($responses);
+    $message = $messages[$user->ID];
+    $emails  = [ $user->user_email ];
+    $subject = 'Priority shopify API error ';
+    if (true == $message['is_error']) {
+        $this->sendEmailError($subject, $message['message']);
+    }
+    return $message;
+}
+// end class
 }
