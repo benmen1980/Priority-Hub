@@ -70,26 +70,32 @@ class Konimbo extends \Priority_Hub {
                 break;
         }
 		if ( empty( $token ) ) {
-			$token = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
+		//	$token = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
 		}
 		$konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
 		$order_id         = '';
-		$orders_limit  = '&created_at_min=' . $last_sync_time;
 		$new_sync_time = date( "c" );
+        $filter_status = '';
 		if ( !$this->debug ) {
             switch($this->document){
                 case 'order':
                     update_user_meta( $user->ID, 'konimbo_orders_last_sync_time', $new_sync_time );
+                    $filter_status = '&payment_status=אשראי - מלא';
                     break;
                 case 'receipt':
                     update_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', $new_sync_time );
+                    $filter_status = '&payment_status=שולם';
                     break;
             }
-
 		}
-		$filter_status = '&payment_status=אשראי - מלא';
-        $filter_status = '';
-		$konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
+        $daysback = 0;
+		if($daysback>0){
+            $last_sync_time = date(DATE_ATOM, mktime(0, 0, 0, date("m") , date("d")-$daysback,date("Y")));
+        }
+        $orders_limit  = '&created_at_min=' . $last_sync_time;
+        //$orders_limit     = '&created_at_min=2020-10-06T00:00:00Z&created_at_max=2020-10-07T00:00:00Z';
+        $orders_limit     = '&created_at_min=2020-10-06T00:00:00Z';
+        $konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
 		// debug url
 		if ($this->debug) {
 			$order = $this->order;
@@ -152,7 +158,6 @@ class Konimbo extends \Priority_Hub {
             update_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', $new_sync_time );
         }
         $filter_status = '&payment_status=שולם';
-        $orders_limit     = '&created_at_min=2020-10-06T00:00:00Z&created_at_max=2020-10-07T00:00:00Z';
         $konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
         // debug url
         if ($this->debug) {
@@ -486,9 +491,7 @@ class Konimbo extends \Priority_Hub {
             'VALIDMONTH'     => $credit_cart_payments->card_expiration,
             'CCUID'          => $credit_cart_payments->credit_cart_token,
             'CONFNUM'        => $credit_cart_payments->order_confirmation_id,
-	    'CARDNUM'        => $credit_cart_payments->shovar_number
-
-
+            'CARDNUM'        => $credit_cart_payments->shovar_number
         ];
 
         // make request
@@ -740,5 +743,31 @@ class Konimbo extends \Priority_Hub {
     }
     function receipt_data($post) {
         echo get_post_meta($post->ID, 'konimbo_receipts_number', true);
+    }
+    function post_user_by_username($username,$order,$document){
+        $user = get_user_by('login',$username);
+        $this->document = $document;
+        $this->order = $order;
+        $this->debug = null != $order;
+        $this->generalpart = '';
+        // process
+        $orders = $this->get_orders_by_user( $user );
+        switch($this->document){
+            case 'order':
+                $responses[$user->ID] = $this->process_orders($orders,$user);
+                break;
+            case 'receipt':
+                $responses[$user->ID] = $this->process_receipts($orders,$user);
+                break;
+        }
+        //$responses[$user->ID] = $this->process_orders($orders,$user);
+        $messages =  $this->processResponse($responses);
+        $message = $messages[$user->ID];
+        $emails  = [ $user->user_email ];
+        $subject = 'Priority Konimbo API error ';
+        if (true == $message['is_error']) {
+            $this->sendEmailError($subject, $message['message']);
+        }
+        return $message;
     }
 }
