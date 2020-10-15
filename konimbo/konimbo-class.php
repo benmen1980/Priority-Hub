@@ -480,7 +480,7 @@ class Konimbo extends \Priority_Hub {
         );
         
         // this  should be config file or in the user meta as json in WP
-        $username = 'konimbo';
+        $username = 'jojo';
 
         switch ($username) {
             case 'konimbo':
