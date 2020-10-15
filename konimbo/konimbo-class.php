@@ -19,8 +19,8 @@ class Konimbo extends \Priority_Hub {
         add_action('add_meta_boxes', array($this,'receipt_data_form_meta_box'));
         // cron
         add_action('konimbo_receipts',array($this,'post_user_by_username'),1,3);
-        $args =  array( 'user_test', null, 'receipt' ) ;
-        wp_schedule_single_event(time(), 'konimbo_receipts', $args);
+        // $args =  array( 'user_test', null, 'receipt' ) ;
+        //wp_schedule_single_event(time(), 'konimbo_receipts', $args);
 	}
 	public function run()
 	{
