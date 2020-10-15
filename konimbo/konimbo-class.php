@@ -305,6 +305,9 @@ class Konimbo extends \Priority_Hub {
                         }
                     }
                 }
+                if(empty($response_body->FORM->InterfaceErrors)){
+                    $error .= $response_body;
+                }
             }
             //echo $response['message'] . '<br>';
             $index ++;
