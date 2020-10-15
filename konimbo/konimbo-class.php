@@ -17,6 +17,10 @@ class Konimbo extends \Priority_Hub {
 		add_action('init', array($this,'register_tag'));
 		add_action( 'admin_post_sync_konimbo', array($this,'process_all_users'));
         add_action('add_meta_boxes', array($this,'receipt_data_form_meta_box'));
+        // cron
+        add_action('konimbo_receipts',array($this,'post_user_by_username'),1,3);
+        $args =  array( 'user_test', null, 'receipt' ) ;
+        wp_schedule_single_event(time(), 'konimbo_receipts', $args);
 	}
 	public function run()
 	{
@@ -294,6 +298,7 @@ class Konimbo extends \Priority_Hub {
                 //$this->update_status( 'Priority ERP', $body_array["IVNUM"], $order->id, $user->ID );
             }
             if ( ! $response['status'] || $response['code'] >= 400 ) {
+                /*
                 $error .= '*********************************<br>Error on order: ' . $receipt->id . '<br>';
                 $interface_errors =  $response_body->FORM->InterfaceErrors;
                 if(isset($interface_errors)){
@@ -306,10 +311,9 @@ class Konimbo extends \Priority_Hub {
                     }
                 }
                 if(empty($response_body->FORM->InterfaceErrors)){
-                    $error .= $response_body;
-                }
+                    $error .= json_encode($response_body);
+                }*/
             }
-            //echo $response['message'] . '<br>';
             $index ++;
             if('' == $response['code']){
                 break;
