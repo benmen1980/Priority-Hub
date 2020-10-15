@@ -58,10 +58,7 @@ class Konimbo extends \Priority_Hub {
 		// the funciton heandles the error internally
 		//echo 'Getting orders from  konimbo...<br>';
 		$token = get_user_meta( $user->ID, 'konimbo_token', true );
-		/*if(empty($token)){
-			$token            = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
-		}*/
-        switch($this->document){
+		switch($this->document){
             case 'order':
                 $last_sync_time = get_user_meta( $user->ID, 'konimbo_orders_last_sync_time', true );
                 break;
@@ -69,14 +66,10 @@ class Konimbo extends \Priority_Hub {
                 $last_sync_time = get_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', true );
                 break;
         }
-		if ( empty( $token ) ) {
-		//	$token = '53aa2baff634333547b7cf50dcabbebaa471365241f77340da068b71bfc22d93';
-		}
 		$konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
 		$order_id         = '';
 		$new_sync_time = date( "c" );
         $filter_status = '';
-		if ( !$this->debug ) {
             switch($this->document){
                 case 'order':
                     update_user_meta( $user->ID, 'konimbo_orders_last_sync_time', $new_sync_time );
@@ -87,7 +80,6 @@ class Konimbo extends \Priority_Hub {
                     $filter_status = '&payment_status=שולם';
                     break;
             }
-		}
         $daysback = 0;
 		if($daysback>0){
             $last_sync_time = date(DATE_ATOM, mktime(0, 0, 0, date("m") , date("d")-$daysback,date("Y")));
@@ -97,7 +89,7 @@ class Konimbo extends \Priority_Hub {
         $orders_limit     = '&created_at_min=2020-10-06T00:00:00Z';
         $konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
 		// debug url
-		if ($this->debug) {
+		if ($this->debug||$this->order) {
 			$order = $this->order;
 			$konimbo_url = 'https://api.konimbo.co.il/v1/orders/'.$order.'?token='.$token;
 		}
@@ -478,12 +470,12 @@ class Konimbo extends \Priority_Hub {
             4 => '4',
             5 => '5'
         );
-        
+
         // this  should be config file or in the user meta as json in WP
-        $username = 'jojo';
+        $username = $user->user_login;
 
         switch ($username) {
-            case 'konimbo':
+            case 'jojo':
                 $konimbo_cards_dictionary   = array(
                     1 => '5',  // Isracard
                     2 => '4',  // Visa
