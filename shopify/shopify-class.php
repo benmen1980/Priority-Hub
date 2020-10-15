@@ -17,10 +17,10 @@ public function __construct() {
 add_action( 'init', array($this,'custom_post_type'), 998 );
 add_action('init', array($this,'register_tag'),999);
 add_action( 'admin_post_sync_konimbo', array($this,'process_all_users'));
-add_action('shopify_action',array($this,'post_user_by_id'),1,3);
-// Magali
-    $args =  array( 2, null, 'otc' ) ;
-    wp_schedule_single_event(time(), 'shopify_action', $args);
+// cron
+    add_action('shopify_action',array($this,'post_user_by_id'),1,3);
+  //  $args =  array( 2, null, 'otc' ) ;
+  //  wp_schedule_single_event(time(), 'shopify_action', $args);
 }
 public function run()
 {
