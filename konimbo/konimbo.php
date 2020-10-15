@@ -19,7 +19,7 @@
                 <option value="orderreceipt">Order + Receipt</option>
             </select>
             <label>Select Priority Entity target</label></div>
-        <input type="text" name="order" value=""><span>Post single Order</span></div>
+        <input type="text" name="konimbo_order" value=""><span>Post single Order</span></div>
         <br>
         <?php
         //<input type="submit" value="Click here to sync konimbo to Priority"> 4567567
