@@ -478,6 +478,37 @@ class Konimbo extends \Priority_Hub {
             4 => '4',
             5 => '5'
         );
+        
+        // this  should be config file or in the user meta as json in WP
+        $username = 'konimbo';
+
+        switch ($username) {
+            case 'konimbo':
+                $konimbo_cards_dictionary   = array(
+                    1 => '5',  // Isracard
+                    2 => '4',  // Visa
+                    3 => '11',  // Diners
+                    4 => '5',  // Amex
+                    5 => '17',  // JCB
+                    6 => '14'   // Leumi Card
+                );
+                $konimbo_number_of_payments_dictionary = array(
+                    1 => '01',
+                    2 => '02',
+                    3 => '03',
+                    4 => '04',
+                    5 => '05',
+                    6 => '06',
+                    7 => '07',
+                    8 => '08',
+                    9 => '09'
+                );
+            break;
+            case 'other...':
+            break;
+            default:
+        }
+
 
         $payment_code               = $konimbo_cards_dictionary[ $credit_cart_payments->issued_company_number ];
         $data['TPAYMENT2_SUBFORM'][] = [
