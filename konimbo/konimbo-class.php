@@ -316,7 +316,7 @@ class Konimbo extends \Priority_Hub {
             );
             // Insert the post into the database
             $receipt_id = wp_insert_post( $my_post );
-            update_post_meta($receipt_id,'konimbo_receipts_number',$error_prefix.$receipt->id);
+            update_post_meta($receipt_id,'konimbo_receipts_number',$receipt->id);
             $index ++;
             if('' == $response['code']){
                 break;
@@ -565,7 +565,7 @@ class Konimbo extends \Priority_Hub {
 							$message .= $interface_errors->text . '<br>';
 						}
 					}elseif(500 == $response_code || 0 == $response_code){
-						$message .= 'Priority message: '.$response['message'].'<br>';
+						$message .= 'Server Error while posting order ' . $order .' '.$response['message'].'<br>';
 					}
 				}elseif(isset($response['response']['code'])){
 					$message .= $response['body'].'<br>';
