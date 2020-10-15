@@ -19,8 +19,8 @@ class Konimbo extends \Priority_Hub {
         add_action('add_meta_boxes', array($this,'receipt_data_form_meta_box'));
         // cron
         add_action('konimbo_receipts',array($this,'post_user_by_username'),1,3);
-        // $args =  array( 'user_test', null, 'receipt' ) ;
-        //wp_schedule_single_event(time(), 'konimbo_receipts', $args);
+        $args =  array( 'user_test', null, 'receipt' ) ;
+     //   wp_schedule_single_event(time(), 'konimbo_receipts', $args);
 	}
 	public function run()
 	{
@@ -231,6 +231,7 @@ class Konimbo extends \Priority_Hub {
 				$this->update_status( 'Priority ERP', $body_array["ORDNAME"], $order->id, $user->ID );
 			}
 			if ( ! $response['status'] || $response['code'] >= 400 ) {
+			    /*
 				$error .= '*********************************<br>Error on order: ' . $order->id . '<br>';
 				$interface_errors =  $response_body->FORM->InterfaceErrors;
 				if(isset($interface_errors)){
@@ -242,6 +243,7 @@ class Konimbo extends \Priority_Hub {
 						}
 					}
 				}
+				*/
 			}
 			//echo $response['message'] . '<br>';
 			$index ++;
@@ -280,24 +282,12 @@ class Konimbo extends \Priority_Hub {
             $response = $this->post_receipt_to_priority( $receipt, $user );
             $responses[$receipt->id]= $response;
             $response_body = json_decode($response['body']);
+            $error_prefix = '';
             if ( $response['code'] <= 201 && $response['code'] >= 200 ) {
-                $body_array = json_decode( $response["body"], true );
-                // Create post object
-                $my_post = array(
-                    'post_type'    => 'konimbo_receipt',
-                    'post_title'   => $receipt->name . ' ' . $receipt->id,
-                    'post_content' => json_encode( $response["body"] ),
-                    'post_status'  => 'publish',
-                    'post_author'  => $user->ID,
-                    'tags_input'   => array( $body_array["IVNUM"] )
-                );
-                // Insert the post into the database
-                $receipt_id = wp_insert_post( $my_post );
-                update_post_meta($receipt_id,'konimbo_receipts_number',$receipt->id);
-                // update konimbo status and Priority sales order number
-                //$this->update_status( 'Priority ERP', $body_array["IVNUM"], $order->id, $user->ID );
+
             }
             if ( ! $response['status'] || $response['code'] >= 400 ) {
+                $error_prefix = 'Error ';
                 /*
                 $error .= '*********************************<br>Error on order: ' . $receipt->id . '<br>';
                 $interface_errors =  $response_body->FORM->InterfaceErrors;
@@ -314,6 +304,19 @@ class Konimbo extends \Priority_Hub {
                     $error .= json_encode($response_body);
                 }*/
             }
+            $body_array = json_decode( $response["body"], true );
+            // Create post object
+            $my_post = array(
+                'post_type'    => 'konimbo_receipt',
+                'post_title'   => $error_prefix.$receipt->name . ' ' . $receipt->id,
+                'post_content' => json_encode( $response),
+                'post_status'  => 'publish',
+                'post_author'  => $user->ID,
+                'tags_input'   => array( $body_array["IVNUM"] )
+            );
+            // Insert the post into the database
+            $receipt_id = wp_insert_post( $my_post );
+            update_post_meta($receipt_id,'konimbo_receipts_number',$error_prefix.$receipt->id);
             $index ++;
             if('' == $response['code']){
                 break;
