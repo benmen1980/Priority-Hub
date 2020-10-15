@@ -43,46 +43,6 @@ if ( isset( $_POST['submit'] ) && isset($_POST['konimbo_username'])&& isset($_PO
     $message = $konimbo->post_user_by_username($_POST['konimbo_username'],$_POST['konimbo_order'],$_POST['konimbo_document']);
     echo $message['message'];
 }
-/*
-if ( isset( $_POST['submit'] ) ) {
-    Konimbo::instance()->document = $_POST['konimbo_document'];
-    if(isset($_POST['generalpart'])){
-		Konimbo::instance()->generalpart = true;
-    }
-	if(true == $_POST['debug'] || '' != $_POST['order']){
-		Konimbo::instance()->debug = true;
-	}else{
-		Konimbo::instance()->debug = false;
-    }
-	if(isset($_POST['order'])){
-		Konimbo::instance()->order = $_POST['order'];
-	}
-	$user_orders = Konimbo::instance()->get_orders_all_users();
-	foreach($user_orders as $user_id => $orders){
-	    $user = get_user_by('ID',$user_id);
-        switch(Konimbo::instance()->document){
-            case 'order':
-                $responses[$user_id] = Konimbo::instance()->process_orders($orders,$user);
-                break;
-            case 'receipt':
-                $responses[$user_id] = Konimbo::instance()->process_receipts($orders,$user);
-                break;
-        }
-    }
-
-	$messages =  Konimbo::instance()->processResponse($responses);
-	if(empty($messages)){
-	    wp_die('No data to process, you might dont have orders to post or error so check your email.');
-    }
-	foreach($messages as $user_id => $message){
-	    $user = get_user_by('ID',$user_id);
-		if (true == $message['is_error']) {
-			$subject = 'konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
-		//	konimbo::instance()->sendEmailError($subject, $message);
-		}
-    echo $message['message'];
-    }
-}*/
 
 
 
