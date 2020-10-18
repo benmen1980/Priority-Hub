@@ -1,5 +1,7 @@
 <?php
-defined('ABSPATH') or die('No direct script access!'); ?>
+defined('ABSPATH') or die('No direct script access!');
+$hub_options = new Priority_Hub('hub','user');
+?>
 
 <h1>
 	<?php echo 'Priority Hub'; ?>
@@ -11,27 +13,27 @@ defined('ABSPATH') or die('No direct script access!'); ?>
 <div id="p18a_tabs_menu">
 	<ul>
 		<li>
-			<a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL); ?>" class="<?php if(is_null($this->get('tab'))) echo 'active'; ?>">
+			<a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL); ?>" class="<?php if(is_null($hub_options->get('tab'))) echo 'active'; ?>">
 				<?php _e('Settings', 'p18a'); ?>
 			</a>
 		</li>
 		<li>
-			<a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=konimbo'); ?>" class="<?php if($this->get('tab') == 'konimbo') echo 'active'; ?>">
+			<a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=konimbo'); ?>" class="<?php if($hub_options->get('tab') == 'konimbo') echo 'active'; ?>">
 				<?php _e('konimbo', 'p18a'); ?>
 			</a>
 		</li>
 		<li>
-			<a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=shopify'); ?>" class="<?php if($this->get('tab') == 'shopify') echo 'active'; ?>">
+			<a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=shopify'); ?>" class="<?php if($hub_options->get('tab') == 'shopify') echo 'active'; ?>">
 				<?php _e('shopify', 'p18a'); ?>
 			</a>
 		</li>
 		<li>
-			<a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=Amazon'); ?>" class="<?php if($this->get('tab') == 'amazon') echo 'active'; ?>">
+			<a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=Amazon'); ?>" class="<?php if($hub_options->get('tab') == 'amazon') echo 'active'; ?>">
 				<?php _e('Amazon', 'p18a'); ?>
 			</a>
 		</li>
         <li>
-            <a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=istore'); ?>" class="<?php if($this->get('tab') == 'istore') echo 'active'; ?>">
+            <a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=istore'); ?>" class="<?php if($hub_options->get('tab') == 'istore') echo 'active'; ?>">
                 <?php _e('istore', 'p18a'); ?>
             </a>
         </li>
