@@ -1,31 +1,9 @@
 <?php
 class Shopify extends \Priority_Hub {
-public static $instance;
-public  $debug;
-public $document;
-public $order;
-public $generalpart;
-public static function instance()
-{
-if (is_null(static::$instance)) {
-static::$instance = new static();
-}
-
-return static::$instance;
-}
-public function __construct() {
-add_action( 'init', array($this,'custom_post_type'), 998 );
-add_action('init', array($this,'register_tag'),999);
-add_action( 'admin_post_sync_konimbo', array($this,'process_all_users'));
-// cron
-    add_action('shopify_action',array($this,'post_user_by_id'),1,3);
-  //  $args =  array( 2, null, 'otc' ) ;
-  //  wp_schedule_single_event(time(), 'shopify_action', $args);
-}
-public function run()
-{
-//return is_admin() ? $this->backend(): $this->frontend();
-}
+    function get_service_name(){
+        return 'Shopify';
+    }
+    /*
 function get_orders_all_users() {
     $args = array(
     'order'   => 'DESC',
@@ -50,7 +28,9 @@ function get_orders_all_users() {
     }
     return $responses;
 } // return array user/orders
-function get_orders_by_user( $user ) {
+    */
+function get_orders_by_user(  ) {
+        $user = $this->get_user();
     // this function return the orders as array, if error return null
     // the function handles the error internally
     //echo 'Getting orders from  shopify...<br>';
@@ -81,16 +61,12 @@ function get_orders_by_user( $user ) {
     'method'  => strtoupper( $method ),
     //'sslverify' => $this->option('sslverify', false)
     ];
-
-
     if ( ! empty( $options ) ) {
         $args = array_merge( $args, $options );
     }
     $response = wp_remote_request( $shopify_base_url, $args );
     $subject = 'shopify Error for user ' . get_user_meta( $user->ID, 'nickname', true );
     if ( is_wp_error( $response ) ) {
-        //echo 'internal server error<br>';
-        //echo 'konimbo error: '.$response->get_error_message();
         $this->sendEmailError($subject, $response->get_error_message() );
     } else {
         $respone_code    = (int) wp_remote_retrieve_response_code( $response );
@@ -121,6 +97,25 @@ if(empty($orders)){
 return ;
 }
 foreach ( $orders as $order ) {
+    // check if receipt already been posted, and continue
+    $post_type = 'shopify_'.$this->document;
+    $meta_key = $post_type.'_order';
+    $args = array(
+        'post_type' => $post_type,
+        'meta_query' => array(
+            array(
+                'key' => $meta_key,
+                'value' => $order->id,
+                'compare' => '=',
+            )
+        )
+    );
+    // The Query
+    $the_query = new WP_Query( $args );
+    // The Loop
+    if ( $the_query->have_posts() ) {
+        continue;
+    }
     switch($this->document){
         case 'order':
             $response = $this->post_order_to_priority( $order, $user );
@@ -129,13 +124,12 @@ foreach ( $orders as $order ) {
             $response = $this->post_otc_to_priority($order,$user);
             break;
     }
-
 $responses[$order->id]= $response;
 $response_body = json_decode($response['body']);
 $body_array = json_decode( $response["body"], true );
 // Create post object
 $my_post = array(
-    'post_type'    => 'shopify_order',
+    'post_type'    => $post_type,
     'post_title'   => $order->name . ' ' . $order->billing_address->first_name.' '.$order->billing_address->last_name,
     'post_content' => json_encode( $response["body"] ),
     'post_status'  => 'publish',
@@ -144,6 +138,8 @@ $my_post = array(
 );
 // Insert the post into the database
 $pid = wp_insert_post( $my_post );
+update_post_meta($pid,$meta_key,$order->name);
+
 if ( $response['code'] <= 201 && $response['code'] >= 200 ) {
 
 }
@@ -170,8 +166,8 @@ break;
 }
 return $responses;
 } // return array of Priority responses by user
-function post_order_to_priority( $order, $user ) {
-
+function post_order_to_priority( $order ) {
+$user = $this->get_user;
 $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
 $data        = [
 'CUSTNAME' => $cust_number,
@@ -280,8 +276,8 @@ $response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data
 
 return $response;
 }
-function post_otc_to_priority( $order, $user ) {
-
+function post_otc_to_priority( $order ) {
+$user = $this->get_user();
         $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
         $data        = [
             'CUSTNAME' => $cust_number,
@@ -387,6 +383,7 @@ function post_otc_to_priority( $order, $user ) {
 
         return $response;
     }
+    /*
 public function processResponse($responses){
 $response3 = null;
 if(empty($responses)){
@@ -431,6 +428,8 @@ $response3[$user_id] = array("message" => $message,"is_error" => $is_error);
 }
 return $response3;
 }
+    */
+    /*
 function update_status( $title, $comment, $order, $user_id ) {
 $user                        = get_user_by( 'ID', $user_id );
 $data                        = [];
@@ -494,7 +493,9 @@ $this->sendEmailError( $subject, $error );
 
 
 }
-public function custom_post_type() {
+    */
+/*
+public function custom_post_type_order() {
 
 $labels = array(
 'name'                  => _x( 'shopify Orders', 'Post Type General Name', 'text_domain' ),
@@ -546,25 +547,71 @@ $args   = array(
 );
 register_post_type( 'shopify_order', $args );
 }
+public function custom_post_type_otc() {
+
+        $labels = array(
+            'name'                  => _x( 'Shopify  OTC', 'Post Type General Name', 'text_domain' ),
+            'singular_name'         => _x( 'Shopify OTC', 'Post Type Singular Name', 'text_domain' ),
+            'menu_name'             => __( 'Shopify OTC', 'text_domain' ),
+            'name_admin_bar'        => __( 'Shopify OTC', 'text_domain' ),
+            'archives'              => __( 'Item Archives', 'text_domain' ),
+            'attributes'            => __( 'Item Attributes', 'text_domain' ),
+            'parent_item_colon'     => __( 'Parent Item:', 'text_domain' ),
+            'all_items'             => __( 'All Items', 'text_domain' ),
+            'add_new_item'          => __( 'Add New Item', 'text_domain' ),
+            'add_new'               => __( 'Add New', 'text_domain' ),
+            'new_item'              => __( 'New Item', 'text_domain' ),
+            'edit_item'             => __( 'Edit Item', 'text_domain' ),
+            'update_item'           => __( 'Update Item', 'text_domain' ),
+            'view_item'             => __( 'View Item', 'text_domain' ),
+            'view_items'            => __( 'View Items', 'text_domain' ),
+            'search_items'          => __( 'Search Item', 'text_domain' ),
+            'not_found'             => __( 'Not found', 'text_domain' ),
+            'not_found_in_trash'    => __( 'Not found in Trash', 'text_domain' ),
+            'featured_image'        => __( 'Featured Image', 'text_domain' ),
+            'set_featured_image'    => __( 'Set featured image', 'text_domain' ),
+            'remove_featured_image' => __( 'Remove featured image', 'text_domain' ),
+            'use_featured_image'    => __( 'Use as featured image', 'text_domain' ),
+            //'insert_into_item'      => __( 'Insert into item', 'text_domain' ),
+            'uploaded_to_this_item' => __( 'Uploaded to this item', 'text_domain' ),
+            'items_list'            => __( 'Items list', 'text_domain' ),
+            'items_list_navigation' => __( 'Items list navigation', 'text_domain' ),
+            'filter_items_list'     => __( 'Filter items list', 'text_domain' ),
+        );
+        $args   = array(
+            'label'               => __( 'Shopify OTC', 'text_domain' ),
+            'description'         => __( 'Shopify OTC log', 'text_domain' ),
+            'labels'              => $labels,
+            'supports'            => array( 'title', 'editor' ),
+            'taxonomies'          => array( 'PriorityReceipt', 'ReceiptID', 'CustomerName' ),
+            'hierarchical'        => false,
+            'public'              => true,
+            'show_ui'             => true,
+            'show_in_menu'        => true,
+            'menu_position'       => 23,
+            'show_in_admin_bar'   => true,
+            'show_in_nav_menus'   => true,
+            'can_export'          => true,
+            'has_archive'         => true,
+            'exclude_from_search' => false,
+            'publicly_queryable'  => true,
+            'capability_type'     => 'post',
+        );
+        register_post_type( 'shopify_otc', $args );
+        //	register_taxonomy_for_object_type( 'post_tag', 'portfolio' );
+    }
+    */
+    /*
+function data_form_meta_box() {
+    add_meta_box('shopify-order-meta-box-id', 'Shopify Order Number', [$this,'otc_data'], 'shopify_otc', 'normal', 'high');
+    }
+    */
+    /*
 function register_tag() {
     register_taxonomy_for_object_type( 'post_tag', 'shopify_order' );
 }
-public function sendEmailError($subject = '', $error = '')
-{
-$user = wp_get_current_user();
-$emails  = [$user->user_email,get_bloginfo('admin_email')];
-if (!$emails) return;
-if ($emails && !is_array($emails)) {
-$pattern ="/[\._a-zA-Z0-9-]+@[\._a-zA-Z0-9-]+/i";
-preg_match_all($pattern, $emails, $result);
-$emails = $result[0];
-}
-$to = array_unique($emails);
-$headers = [
-'content-type: text/html'
-];
-wp_mail( $to,get_bloginfo('name').' '. $subject, $error, $headers );
-}
+    */
+    /*
 public function post_user_by_id($user_id,$order,$document){
     $user = get_user_by('ID',$user_id);
     $this->document = $document;
@@ -583,5 +630,10 @@ public function post_user_by_id($user_id,$order,$document){
     }
     return $message;
 }
+
+    function otc_data($post) {
+        echo get_post_meta($post->ID, 'shopify_order_number', true);
+    }
+    */
 // end class
 }
