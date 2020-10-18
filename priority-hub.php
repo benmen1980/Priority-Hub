@@ -8,9 +8,9 @@
 * Plugin Name: Priority Hub
 * Plugin URI: http://www.simplyCT.co.il
 * Description: Priority hub connnects any platform to Priority ERP
-* Version: 1.03
+* Version: 1.04
 * Author: SimplyCT
-* Author URI: http://www.roi-holdings.com
+* Author URI: http://simplyCT.co.il
 * Licence: GPLv2
 * Text Domain: p18a
 * Domain Path: languages
@@ -18,7 +18,7 @@
 */
 
 
-define('PHUB_VERSION'       , '1.01');
+define('PHUB_VERSION'       , '1.03');
 define('PHUB_SELF'          , __FILE__);
 define('PHUB_URI'           , plugin_dir_url(__FILE__));
 define('PHUB_DIR'           , plugin_dir_path(__FILE__));
@@ -27,155 +27,139 @@ define('PHUB_ASSET_URL'     , trailingslashit(PHUB_URI)    . 'assets/');
 define('PHUB_INCLUDES_DIR'  , trailingslashit(PHUB_DIR)    . 'includes/');
 define('PHUB_CLASSES_DIR'   , trailingslashit(PHUB_DIR)    . 'includes/classes/');
 define('PHUB_ADMIN_DIR'     , trailingslashit(PHUB_DIR)    . 'includes/admin/');
-
 // define plugin name and plugin admin url
 define('PHUB_PLUGIN_NAME'      , 'Priority Hub');
 define('PHUB_PLUGIN_ADMIN_URL' , sanitize_title(PHUB_PLUGIN_NAME));
 
-include_once (PHUB_INCLUDES_DIR.'front-panel.php');
-include_once (PHUB_DIR.'konimbo/konimbo-class.php');
-include_once (PHUB_DIR.'shopify/shopify-class.php');
+add_action('init', function(){
+    include_once (PHUB_ADMIN_DIR.'acf.php');
+    include_once (PHUB_DIR.'priority-hub-class.php');
+    include_once (PHUB_INCLUDES_DIR.'front-panel.php');
+    include_once (PHUB_DIR.'konimbo/konimbo-class.php');
+    include_once (PHUB_DIR.'shopify/shopify-class.php');
+    add_action( 'admin_menu','add_menu_items');
+    add_action('admin_init', function () {
+        wp_localize_script('p18a-admin-js', 'P18A', [
+            'nonce' => wp_create_nonce('p18a_request'),
+            'working' => __('Working', 'p18a'),
+            'json_response' => __('JSON Response', 'p18a'),
+            'json_request' => __('JSON Request', 'p18a'),
+        ]);
+        wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
+    });
+    add_action('wp_enqueue_scripts', function () {
+        wp_enqueue_script('p18a-admin-js', PHUB_ASSET_URL . 'admin.js', ['jquery']);
+        wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
+    });
+    $services = ['Shopify','Konimbo'];
+    restart_Services($services);
+	});
+function add_menu_items(){
+    $hook = add_menu_page( 'Priority Hub', 'Priority Hub', 'activate_plugins', 'priority-hub', 'hub_options');
+    //add_action( "load-$hook", 'add_options' );
+}
+function hub_options() {
+    include_once ( PHUB_ADMIN_DIR.'options-header.php');
+}
+function restart_Services($services){
+    foreach ($services as $service){
+        $service_shopify = new Service($service);
+    }
+}
+// new post type
+class Service
+{
+    public $service;
+    public function __construct($service){
+        $this->service = $service;
+        $this->register_custom_post_type('Order');
+        $this->register_custom_post_type('otc');
+        $this->register_custom_post_type('Invoice');
+        $this->register_custom_post_type('Receipt');
+        add_action('add_meta_boxes', array($this, 'custom_post_data_form_meta_box'));
 
+    }
+    public function register_custom_post_type($document)
+    {
+        $labels = array(
+            'name' => _x($this->service . ' ' . $document, 'Post Type General Name', 'text_domain'),
+            'singular_name' => _x($this->service . ' ' . $document, 'Post Type Singular Name', 'text_domain'),
+            'menu_name' => __($this->service . ' ' . $document, 'text_domain'),
+            'name_admin_bar' => __($this->service . ' ' . $document, 'text_domain'),
+            'archives' => __('Item Archives', 'text_domain'),
+            'attributes' => __('Item Attributes', 'text_domain'),
+            'parent_item_colon' => __('Parent Item:', 'text_domain'),
+            'all_items' => __('All Items', 'text_domain'),
+            'add_new_item' => __('Add New Item', 'text_domain'),
+            'add_new' => __('Add New', 'text_domain'),
+            'new_item' => __('New Item', 'text_domain'),
+            'edit_item' => __('Edit Item', 'text_domain'),
+            'update_item' => __('Update Item', 'text_domain'),
+            'view_item' => __('View Item', 'text_domain'),
+            'view_items' => __('View Items', 'text_domain'),
+            'search_items' => __('Search Item', 'text_domain'),
+            'not_found' => __('Not found', 'text_domain'),
+            'not_found_in_trash' => __('Not found in Trash', 'text_domain'),
+            'featured_image' => __('Featured Image', 'text_domain'),
+            'set_featured_image' => __('Set featured image', 'text_domain'),
+            'remove_featured_image' => __('Remove featured image', 'text_domain'),
+            'use_featured_image' => __('Use as featured image', 'text_domain'),
+//'insert_into_item'      => __( 'Insert into item', 'text_domain' ),
+            'uploaded_to_this_item' => __('Uploaded to this item', 'text_domain'),
+            'items_list' => __('Items list', 'text_domain'),
+            'items_list_navigation' => __('Items list navigation', 'text_domain'),
+            'filter_items_list' => __('Filter items list', 'text_domain'),
+        );
+        $args = array(
+            'label' => __($this->service . ' ' . $document, 'text_domain'),
+            'description' => __($this->service . ' ' . $document . ' log', 'text_domain'),
+            'labels' => $labels,
+            'supports' => array('title', 'editor'),
+            'taxonomies' => array($this->service . ' ' . $document, 'OrderID', 'CustomerName'),
+            'hierarchical' => false,
+            'public' => true,
+            'show_ui' => true,
+            'show_in_menu' => true,
+            'menu_position' => 23,
+            'show_in_admin_bar' => true,
+            'show_in_nav_menus' => true,
+            'can_export' => true,
+            'has_archive' => true,
+            'exclude_from_search' => false,
+            'publicly_queryable' => true,
+            'capability_type' => 'post',
+        );
+        register_post_type($this->service . '_' . $document, $args);
 
-class Priority_Hub {
-	private static $instance; // api instance
-	protected static $prefix; // options prefix
-	// constants
-	public static function instance()
-	{
-		if (is_null(static::$instance)) {
-			static::$instance = new static();
-		}
+        //$this->custom_post_data_form_meta_box($document);
+    }
 
-		return static::$instance;
-	}
-	public function __construct() {
-		add_action( 'admin_menu',array( $this,'add_menu_items'));
-		add_action('admin_init', function(){
-			wp_localize_script('p18a-admin-js', 'P18A', [
-				'nonce'         => wp_create_nonce('p18a_request'),
-				'working'       => __('Working', 'p18a'),
-				'json_response' => __('JSON Response', 'p18a'),
-				'json_request'  => __('JSON Request', 'p18a'),
-			]);
-			wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
-		});
-		add_action( 'wp_enqueue_scripts', function(){
-			wp_enqueue_script('p18a-admin-js', PHUB_ASSET_URL . 'admin.js', ['jquery']);
-			wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
-		} );
-	}
-	public function run()
-	{
-		return is_admin() ? $this->backend(): $this->frontend();
-	}
-	protected function get($key, $filter = null, $options = null)
-	{
-		if (is_null($filter)) {
-			return isset($_GET[$key]) ? $_GET[$key] : null;
-		}
+    public function custom_post_data_form_meta_box()
+    {
+        // order
+        $document = 'Order';
+        $screen = strtolower($this->service) . '_' . $document;
+        add_meta_box($this->service . '-meta-box-id', $this->service . ' Order Number', [$this, 'custom_post_data'], $screen, 'normal', 'high');
+        // otc
+        $document = 'otc';
+        $screen = strtolower($this->service) . '_' . $document;
+        add_meta_box($this->service . '-meta-box-id', $this->service . ' Order Number', [$this, 'custom_post_data'], $screen, 'normal', 'high');
+        // invoice
+        $document = 'Invoice';
+        $screen = strtolower($this->service) . '_' . $document;
+        add_meta_box($this->service . '-meta-box-id', $this->service . ' Order Number', [$this, 'custom_post_data'], $screen, 'normal', 'high');
+        // receipt
+        $document = 'Receipt';
+        $screen = strtolower($this->service) . '_' . $document;
+        add_meta_box($this->service . '-meta-box-id', $this->service . ' Order Number', [$this, 'custom_post_data'], $screen, 'normal', 'high');
+    }
 
-		return filter_var($_GET[$key], filter_id($filter), $options);
-	}
-
-	public function option($option, $default = false)
-	{
-		return get_option(static::$prefix . $option, $default);
-	}
-
-
-	// decode unicode hebrew text
-	public function decodeHebrew($string)
-	{
-		return preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($match) {
-			return mb_convert_encoding(pack('H*', $match[1]), 'UTF-8', 'UTF-16BE');
-		}, $string);
-	}
-
-	public function makeRequest($method, $url_addition = null,$options = [], $user)
-	{
-		$args = [
-			'headers' => [
-				'Authorization' => 'Basic ' . base64_encode( get_user_meta( $user->ID, 'username' ,true) . ':' . get_user_meta( $user->ID, 'password' ,true)),
-				'Content-Type'  => 'application/json',
-				'X-App-Id' => get_user_meta( $user->ID, 'x-app-id' ,true),
-				'X-App-Key' => get_user_meta( $user->ID, 'x-app-key' ,true)
-			],
-			'timeout'   => 45,
-			'method'    => strtoupper($method),
-			'sslverify' => get_user_meta( $user->ID, 'ssl_verify' ,true)
-		];
-
-
-		if ( ! empty($options)) {
-			$args = array_merge($args, $options);
-		}
-
-		$url = sprintf('https://%s/odata/Priority/%s/%s/%s',
-			get_user_meta( $user->ID, 'url' ,true),
-			get_user_meta( $user->ID, 'application' ,true),
-			get_user_meta( $user->ID, 'environment_name' ,true),
-			is_null($url_addition) ? '' : stripslashes($url_addition)
-		);
-
-		$response = wp_remote_request($url, $args);
-
-		$response_code    = wp_remote_retrieve_response_code($response);
-		$response_message = wp_remote_retrieve_response_message($response);
-		$response_body    = wp_remote_retrieve_body($response);
-
-		if ($response_code >= 400) {
-			$response_body = strip_tags($response_body);
-		}
-
-		// decode hebrew
-		$response_body_decoded = $this->decodeHebrew($response_body);
-
-
-		return [
-			'url'      => $url,
-			'args'     => $args,
-			'method'   => strtoupper($method),
-			'body'     => $response_body_decoded,
-			'body_raw' => $response_body,
-			'code'     => $response_code,
-			'status'   => ($response_code >= 200 && $response_code < 300) ? 1 : 0,
-			'message'  => ($response_message ? $response_message : $response->get_error_message())
-		];
-	}
-	// frontend
-	function frontend(){
-
-
-	}
-	// backend
-	function backend(){
-
-	}
-
-	// admin pages
-	function hub_options() {
-		include_once ( PHUB_ADMIN_DIR.'options-header.php');
-
-
-
-
-
-	}
-	// admin menu
-	function add_menu_items(){
-	 $hook = add_menu_page( 'Priority Hub', 'Priority Hub', 'activate_plugins', 'priority-hub', array($this,'hub_options'));
-	 //add_action( "load-$hook", 'add_options' );
-
-	}
+    function custom_post_data($post)
+    {
+        echo get_post_meta($post->ID, 'order_number', true);
+    }
 }
 
-add_action('plugins_loaded', function(){
-    include_once (PHUB_ADMIN_DIR.'acf.php');
-	Priority_Hub::instance()->run();
-    Shopify::instance()->run();
-	Konimbo::instance()->run();
-	});
 
 
 
