@@ -344,7 +344,7 @@ if( function_exists('acf_add_local_field_group') ):
         'active' => true,
         'description' => '',
     ));
-
+    // Konimbo user control
     acf_add_local_field_group(array(
         'key' => 'group_5eebdc1d3981b',
         'title' => 'Konimbo User Control',
@@ -450,14 +450,7 @@ if( function_exists('acf_add_local_field_group') ):
                 'label' => 'Credit Cards conversion table',
                 'name' => 'konimbo_credit_cards_conversion_table',
                 'type' => 'text',
-                'instructions' => 'use a json syntax like {1:"5",2:"4"}
-values should stand for
- 1 => \'5\',	// Isracard
-										2 => \'?\',	// Visa
-										3 => \'?\',	// Diners
-										4 => \'?\',	// Amex
-										5 => \'?\',	// JCB
-										6 => \'?\'	 // Leumi Card',
+                'instructions' => '',
                 'required' => 0,
                 'conditional_logic' => array(
                     array(
@@ -473,7 +466,7 @@ values should stand for
                     'class' => '',
                     'id' => '',
                 ),
-                'default_value' => '{1:"1",2:"2",3:"3",4:"4",5:"5",6:"6"}',
+                'default_value' => '{"1":"1","2":"2","3":"3","4":"4","5":"5","6":"6"}',
                 'placeholder' => '',
                 'prepend' => '',
                 'append' => '',
@@ -481,8 +474,8 @@ values should stand for
             ),
             array(
                 'key' => 'field_5f8dfa4fefc00',
-                'label' => 'Number of Payments conversion table (copy)',
-                'name' => 'konimbo_number_payments_conversion_table_copy',
+                'label' => 'Number of Payments conversion table',
+                'name' => 'konimbo_number_payments_conversion_table',
                 'type' => 'text',
                 'instructions' => 'use a json syntax like {1:"01",2:"02"}',
                 'required' => 0,
@@ -500,7 +493,7 @@ values should stand for
                     'class' => '',
                     'id' => '',
                 ),
-                'default_value' => '{1:"01",2:"02",3:"03",4:"04",5:"05",6:"06"}',
+                'default_value' => '{"1":"01","2":"02","3":"03","4":"04","5":"05","6":"06","7":"07","8":"08","9":"09"}',
                 'placeholder' => '',
                 'prepend' => '',
                 'append' => '',

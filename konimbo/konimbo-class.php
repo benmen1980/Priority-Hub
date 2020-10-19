@@ -4,9 +4,6 @@ class Konimbo extends \Priority_Hub {
         return 'Konimbo';
     }
 	function get_orders_by_user() {
-		// this function return the orders as array, if error return null
-		// the funciton heandles the error internally
-		//echo 'Getting orders from  konimbo...<br>';
         $user = $this->get_user();
 		$token = get_user_meta( $user->ID, 'konimbo_token', true );
 		switch($this->document){
@@ -240,10 +237,7 @@ class Konimbo extends \Priority_Hub {
             5 => '5'
         );
         // this  should be config file or in the user meta as json in WP
-        $username = $user->user_login;
-        switch ($username) {
-            case 'jojo':
-                // konimbo_credit_cards_conversion_table
+
                 $konimbo_cards_dictionary   = array(
                     1 => '5',  // Isracard
                     2 => '4',  // Visa
@@ -252,6 +246,10 @@ class Konimbo extends \Priority_Hub {
                     5 => '17',  // JCB
                     6 => '14'   // Leumi Card
                 );
+                $user_meta = get_user_meta($user->ID);
+                $user_meta_cc = get_user_meta($user->ID,'konimbo_credit_cards_conversion_table',true);
+                $konimbo_cards_dictionary = json_decode(get_user_meta($user->ID,'konimbo_credit_cards_conversion_table',true));
+                // konimbo_number_payments_conversion_table
                 $konimbo_number_of_payments_dictionary = array(
                     1 => '01',
                     2 => '02',
@@ -263,11 +261,8 @@ class Konimbo extends \Priority_Hub {
                     8 => '08',
                     9 => '09'
                 );
-            break;
-            case 'other...':
-            break;
-            default:
-        }
+                $konimbo_cards_dictionary = json_decode(get_user_meta($user->ID,'konimbo_number_payments_conversion_table',true));
+
 
 
         $payment_code               = $konimbo_cards_dictionary[ $credit_cart_payments->issued_company_number ];
