@@ -83,73 +83,7 @@ class Konimbo extends \Priority_Hub {
 				return null;
 			}
 		}
-	} // return array of konimbo orders
-   /*
-    function get_receipts_by_user() {
-        // this function return the orders as array, if error return null
-        // the function handles the error internally
-        //echo 'Getting orders from  konimbo...<br>';
-        $user = $this->get_user();
-        $token = get_user_meta( $user->ID, 'konimbo_token', true );
-        $last_sync_time = get_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', true );
-        $daysback = 1;
-        $last_sync_time = date(DATE_ATOM, mktime(0, 0, 0, date("m") , date("d")-$daysback,date("Y")));
-        $konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
-        $order_id         = '';
-        //$orders_limit     = '&created_at_min=2020-06-15T00:00:00Z';
-        $orders_limit  = '&created_at_min=' . $last_sync_time;
-        $new_sync_time = date( "c" );
-        if ( !$this->debug ) {
-            update_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', $new_sync_time );
-        }
-        $filter_status = '&payment_status=שולם';
-        $konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
-        // debug url
-        if ($this->debug) {
-            $order = $this->order;
-            $konimbo_url = 'https://api.konimbo.co.il/v1/orders/'.$order.'?token='.$token;
-        }
-        $method = 'GET';
-        $args   = [
-            'headers' => [],
-            'timeout' => 450,
-            'method'  => strtoupper( $method ),
-            //'sslverify' => $this->option('sslverify', false)
-        ];
-
-
-        if ( ! empty( $options ) ) {
-            $args = array_merge( $args, $options );
-        }
-        $response = wp_remote_request( $konimbo_url, $args );
-        $subject = 'konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
-
-        if ( is_wp_error( $response ) ) {
-            //echo 'internal server error<br>';
-            //echo 'konimbo error: '.$response->get_error_message();
-            $this->sendEmailError($subject, $response->get_error_message() );
-        } else {
-            $respone_code    = (int) wp_remote_retrieve_response_code( $response );
-            $respone_message = $response['body'];
-            If ( $respone_code <= 201 ) {
-                //echo 'konimbo ok!!!<br>';
-                $orders = json_decode( $response['body'] );
-                if ( $this->debug ) {
-                    $orders = [ json_decode( $response['body'] ) ];
-                }
-                return $orders;
-            }
-            if ( $respone_code >= 400 && $respone_code <= 499 &&  $respone_code != 404 ) {
-                $error = $respone_message . '<br>' . $konimbo_url;
-                $this->sendEmailError( $subject, $error );
-                return null;
-            }
-            if($respone_code == 404 ){
-                return null;
-            }
-        }
-    } // return array of konimbo orders
-   */
+	}
 	function post_order_to_priority( $order) {
         $user = $this->get_user();
 		$cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
