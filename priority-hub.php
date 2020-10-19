@@ -77,6 +77,7 @@ class Service
         $this->register_custom_post_type('Invoice');
         $this->register_custom_post_type('Receipt');
         add_action('add_meta_boxes', array($this, 'custom_post_data_form_meta_box'));
+        $this->register_cron_action();
 
     }
     public function register_custom_post_type($document)
@@ -133,7 +134,6 @@ class Service
 
         //$this->custom_post_data_form_meta_box($document);
     }
-
     public function custom_post_data_form_meta_box()
     {
         // order
@@ -153,10 +153,19 @@ class Service
         $screen = strtolower($this->service) . '_' . $document;
         add_meta_box($this->service . '-meta-box-id', $this->service . ' Order Number', [$this, 'custom_post_data'], $screen, 'normal', 'high');
     }
-
     function custom_post_data($post)
     {
         echo get_post_meta($post->ID, 'order_number', true);
+    }
+    function execute_cron_action($username,$doctype){
+        $class_name = $this->service;
+        $class_service = new $class_name($doctype,$username);
+        $class_service->post_user_by_username($username,null,$doctype);
+
+    }
+    function register_cron_action(){
+        // cron
+        add_action(strtolower($this->service).'_action',array($this,'execute_cron_action'),1,3);
     }
 }
 
