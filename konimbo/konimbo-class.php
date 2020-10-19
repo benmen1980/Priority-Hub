@@ -166,7 +166,7 @@ class Konimbo extends \Priority_Hub {
 		// payment info
 		$payment              = $order->payments;
 		$credit_cart_payments = $order->credit_card_details;
-
+        /*
 		$konimbo_cards_dictionary   = array(
 			1 => '1',  // Isracard
 			2 => '5',  // Visa
@@ -175,6 +175,9 @@ class Konimbo extends \Priority_Hub {
 			5 => '5',  // JCB
 			6 => '6'   // Leumi Card
 		);
+*/
+        $konimbo_cards_dictionary = json_decode(get_user_meta($user->ID,'konimbo_credit_cards_conversion_table',true),true);
+        $konimbo_number_of_payments_dictionary = json_decode(get_user_meta($user->ID,'konimbo_number_payments_conversion_table',true),true);
 		$payment_code               = $konimbo_cards_dictionary[ $credit_cart_payments->issued_company_number ];
 		$data['PAYMENTDEF_SUBFORM'] = [
 			'PAYMENTCODE' => $payment_code,
@@ -221,6 +224,7 @@ class Konimbo extends \Priority_Hub {
         $data['TINVOICESCONT_SUBFORM'][] = $customer_data;
         // payment info
         $payment              = $order->payments;
+        /*
         $konimbo_cards_dictionary   = array(
             1 => '5',  // Isracard
             2 => '4',  // Visa
@@ -236,35 +240,9 @@ class Konimbo extends \Priority_Hub {
             4 => '4',
             5 => '5'
         );
-        // this  should be config file or in the user meta as json in WP
-
-                $konimbo_cards_dictionary   = array(
-                    1 => '5',  // Isracard
-                    2 => '4',  // Visa
-                    3 => '11',  // Diners
-                    4 => '5',  // Amex
-                    5 => '17',  // JCB
-                    6 => '14'   // Leumi Card
-                );
-                $user_meta = get_user_meta($user->ID);
-                $user_meta_cc = get_user_meta($user->ID,'konimbo_credit_cards_conversion_table',true);
-                $konimbo_cards_dictionary = json_decode(get_user_meta($user->ID,'konimbo_credit_cards_conversion_table',true));
-                // konimbo_number_payments_conversion_table
-                $konimbo_number_of_payments_dictionary = array(
-                    1 => '01',
-                    2 => '02',
-                    3 => '03',
-                    4 => '04',
-                    5 => '05',
-                    6 => '06',
-                    7 => '07',
-                    8 => '08',
-                    9 => '09'
-                );
-                $konimbo_cards_dictionary = json_decode(get_user_meta($user->ID,'konimbo_number_payments_conversion_table',true));
-
-
-
+        */
+        $konimbo_cards_dictionary = json_decode(get_user_meta($user->ID,'konimbo_credit_cards_conversion_table',true),true);
+        $konimbo_number_of_payments_dictionary = json_decode(get_user_meta($user->ID,'konimbo_number_payments_conversion_table',true),true);
         $payment_code               = $konimbo_cards_dictionary[ $credit_cart_payments->issued_company_number ];
         $data['TPAYMENT2_SUBFORM'][] = [
             'PAYMENTCODE'    => $payment_code,
