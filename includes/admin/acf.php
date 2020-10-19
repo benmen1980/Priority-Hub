@@ -347,14 +347,14 @@ if( function_exists('acf_add_local_field_group') ):
 
     acf_add_local_field_group(array(
         'key' => 'group_5eebdc1d3981b',
-        'title' => 'konimbo User Control',
+        'title' => 'Konimbo User Control',
         'fields' => array(
             array(
                 'key' => 'field_5eebdfb0162a0',
-                'label' => 'Activate sync with konimbo ?',
+                'label' => 'Activate sync with Konimbo ?',
                 'name' => 'konimbo_activate_sync',
                 'type' => 'true_false',
-                'instructions' => 'Check this box in order to enable sync with konimbo',
+                'instructions' => 'Check this box in order to enable sync with Konimbo',
                 'required' => 0,
                 'conditional_logic' => 0,
                 'wrapper' => array(
@@ -370,7 +370,7 @@ if( function_exists('acf_add_local_field_group') ):
             ),
             array(
                 'key' => 'field_5eebdc28146c6',
-                'label' => 'Customer Token in konimbo system',
+                'label' => 'Customer Token in Konimbo system',
                 'name' => 'konimbo_token',
                 'type' => 'text',
                 'instructions' => 'Enter the token you received from customer service.',
@@ -444,6 +444,67 @@ if( function_exists('acf_add_local_field_group') ):
                 'display_format' => 'd/m/Y g:i a',
                 'return_format' => 'd/m/Y g:i a',
                 'first_day' => 0,
+            ),
+            array(
+                'key' => 'field_5f8df979e0132',
+                'label' => 'Credit Cards conversion table',
+                'name' => 'konimbo_credit_cards_conversion_table',
+                'type' => 'text',
+                'instructions' => 'use a json syntax like {1:"5",2:"4"}
+values should stand for
+ 1 => \'5\',	// Isracard
+										2 => \'?\',	// Visa
+										3 => \'?\',	// Diners
+										4 => \'?\',	// Amex
+										5 => \'?\',	// JCB
+										6 => \'?\'	 // Leumi Card',
+                'required' => 0,
+                'conditional_logic' => array(
+                    array(
+                        array(
+                            'field' => 'field_5eebdfb0162a0',
+                            'operator' => '==',
+                            'value' => '1',
+                        ),
+                    ),
+                ),
+                'wrapper' => array(
+                    'width' => '',
+                    'class' => '',
+                    'id' => '',
+                ),
+                'default_value' => '{1:"1",2:"2",3:"3",4:"4",5:"5",6:"6"}',
+                'placeholder' => '',
+                'prepend' => '',
+                'append' => '',
+                'maxlength' => '',
+            ),
+            array(
+                'key' => 'field_5f8dfa4fefc00',
+                'label' => 'Number of Payments conversion table (copy)',
+                'name' => 'konimbo_number_payments_conversion_table_copy',
+                'type' => 'text',
+                'instructions' => 'use a json syntax like {1:"01",2:"02"}',
+                'required' => 0,
+                'conditional_logic' => array(
+                    array(
+                        array(
+                            'field' => 'field_5eebdfb0162a0',
+                            'operator' => '==',
+                            'value' => '1',
+                        ),
+                    ),
+                ),
+                'wrapper' => array(
+                    'width' => '',
+                    'class' => '',
+                    'id' => '',
+                ),
+                'default_value' => '{1:"01",2:"02",3:"03",4:"04",5:"05",6:"06"}',
+                'placeholder' => '',
+                'prepend' => '',
+                'append' => '',
+                'maxlength' => '',
             ),
         ),
         'location' => array(

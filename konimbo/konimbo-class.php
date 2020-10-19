@@ -222,10 +222,8 @@ class Konimbo extends \Priority_Hub {
             'ADRS'  => $order->address,
         ];
         $data['TINVOICESCONT_SUBFORM'][] = $customer_data;
-
         // payment info
         $payment              = $order->payments;
-
         $konimbo_cards_dictionary   = array(
             1 => '5',  // Isracard
             2 => '4',  // Visa
@@ -241,12 +239,11 @@ class Konimbo extends \Priority_Hub {
             4 => '4',
             5 => '5'
         );
-
         // this  should be config file or in the user meta as json in WP
         $username = $user->user_login;
-
         switch ($username) {
             case 'jojo':
+                // konimbo_credit_cards_conversion_table
                 $konimbo_cards_dictionary   = array(
                     1 => '5',  // Isracard
                     2 => '4',  // Visa
