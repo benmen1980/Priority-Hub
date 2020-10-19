@@ -23,6 +23,8 @@ class Priority_Hub
         $this->service = $this->get_service_name();
         $this->user =  get_user_by('login',$username);
         $this->doctype = $doctype;
+        // cron
+        add_action($this->get_service_name().'_action',array($this,'post_user_by_username'),1,3);
     }
     public function run()
     {
