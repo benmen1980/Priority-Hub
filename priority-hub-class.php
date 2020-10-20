@@ -254,6 +254,15 @@ class Priority_Hub
         }
         return $response3;
     }
+    // last sync time
+    function get_last_sync_time(){
+        $user = $this->get_user();
+        return get_user_meta( $user->ID, strtolower($this->get_service_name()).'_last_sync_time_'.strtolower($this->get_doctype()), true );
+    }
+    function set_last_sync_time(){
+        $user = $this->get_user();
+        update_user_meta( $user->ID, strtolower($this->get_service_name()).'_last_sync_time_'.strtolower($this->get_doctype()), date( "c" ));
+    }
     // Priority
     function post_order_to_priority($order){
         return null;

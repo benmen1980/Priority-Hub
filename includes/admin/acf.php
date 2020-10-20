@@ -1,6 +1,6 @@
 <?php
 if( function_exists('acf_add_local_field_group') ):
-
+    // Priority API settings
     acf_add_local_field_group(array(
         'key' => 'group_5ef3cac26241d',
         'title' => 'Priority API settings',
@@ -195,17 +195,17 @@ if( function_exists('acf_add_local_field_group') ):
         'active' => true,
         'description' => '',
     ));
-
+    // Shopify user control
     acf_add_local_field_group(array(
         'key' => 'group_5f4ffe55a88fe',
-        'title' => 'shopify User Control',
+        'title' => 'Shopify User Control',
         'fields' => array(
             array(
                 'key' => 'field_5f4ffe62418d1',
-                'label' => 'Active Sync with shopify',
+                'label' => 'Active Sync with Shopify',
                 'name' => 'shopify_activate_sync',
                 'type' => 'true_false',
-                'instructions' => 'Check this box in order to enable sync with shopify',
+                'instructions' => 'Check this box in order to enable sync with Shopify',
                 'required' => 0,
                 'conditional_logic' => 0,
                 'wrapper' => array(
@@ -221,7 +221,7 @@ if( function_exists('acf_add_local_field_group') ):
             ),
             array(
                 'key' => 'field_5f4ffe94418d2',
-                'label' => 'shopify Store URL',
+                'label' => 'Shopify Store URL',
                 'name' => 'shopify_url',
                 'type' => 'text',
                 'instructions' => '',
@@ -302,8 +302,33 @@ if( function_exists('acf_add_local_field_group') ):
             ),
             array(
                 'key' => 'field_5f4fff24196db',
-                'label' => 'Last Sync Date',
-                'name' => 'shopify_last_sync_date',
+                'label' => 'Last Sync Time Order',
+                'name' => 'shopify_last_sync_time_order',
+                'type' => 'date_time_picker',
+                'instructions' => '',
+                'required' => 0,
+                'conditional_logic' => array(
+                    array(
+                        array(
+                            'field' => 'field_5f4ffe62418d1',
+                            'operator' => '==',
+                            'value' => '1',
+                        ),
+                    ),
+                ),
+                'wrapper' => array(
+                    'width' => '',
+                    'class' => '',
+                    'id' => '',
+                ),
+                'display_format' => 'd/m/Y g:i a',
+                'return_format' => 'd/m/Y g:i a',
+                'first_day' => 1,
+            ),
+            array(
+                'key' => 'field_5f8f56ca98875',
+                'label' => 'Last Sync Time OTC',
+                'name' => 'shopify_last_sync_time_otc',
                 'type' => 'date_time_picker',
                 'instructions' => '',
                 'required' => 0,
@@ -398,7 +423,7 @@ if( function_exists('acf_add_local_field_group') ):
             array(
                 'key' => 'field_5eebdeb08a754',
                 'label' => 'Orders Last Sync time',
-                'name' => 'konimbo_orders_last_sync_time',
+                'name' => 'konimbo_last_sync_time_order',
                 'type' => 'date_time_picker',
                 'instructions' => '',
                 'required' => 0,
@@ -423,7 +448,7 @@ if( function_exists('acf_add_local_field_group') ):
             array(
                 'key' => 'field_5f6fd6850a6d9',
                 'label' => 'Receipts Last Sync Time',
-                'name' => 'konimbo_receipts_last_sync_time',
+                'name' => 'konimbo_last_sync_time_receipt',
                 'type' => 'date_time_picker',
                 'instructions' => '',
                 'required' => 0,
@@ -675,7 +700,6 @@ if( function_exists('acf_add_local_field_group') ):
         'active' => true,
         'description' => '',
     ));
-
 endif;
 
 // export to JSON, use this code to export the php code to JSON file that can be use to load

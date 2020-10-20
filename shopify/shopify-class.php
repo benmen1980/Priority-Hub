@@ -1,44 +1,18 @@
 <?php
 class Shopify extends \Priority_Hub {
-    function get_service_name(){
+function get_service_name(){
         return 'Shopify';
     }
-    /*
-function get_orders_all_users() {
-    $args = array(
-    'order'   => 'DESC',
-    'orderby' => 'user_registered',
-    'meta_key' => 'shopify_activate_sync',
-    'meta_value' => true
-    );
-    // The User Query
-    $user_query = new WP_User_Query( $args );
-    // The User Loop
-    if ( ! empty( $user_query->results ) ) {
-        foreach ( $user_query->results as $user ) {
-            $activate_sync = get_user_meta( $user->ID, 'shopify_activate_sync',true );
-            if ( $activate_sync ) {
-                //echo 'Start sync  ' . get_user_meta( $user->ID, 'nickname', true ) . '<br>';
-                ini_set( 'MAX_EXECUTION_TIME', 0 );
-                $responses[$user->ID] = $this->get_orders_by_user( $user );
-            }
-        }
-    } else {
-    // no shop_manager found
-    }
-    return $responses;
-} // return array user/orders
-    */
 function get_orders_by_user(  ) {
-        $user = $this->get_user();
-    $last_sync_time = get_user_meta( $user->ID, 'shopify_last_sync_date', true );
+    $user = $this->get_user();
+    //$last_sync_time = get_user_meta( $user->ID, 'shopify_last_sync_date', true );
+    $last_sync_time = $this->get_last_sync_time();
     $order_id         = '';
     //$orders_limit     = '?created_at_min=2020-06-15T00:00:00Z';
     $orders_limit  = '?created_at_min=' . $last_sync_time;
     $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json'.$orders_limit;
-    $new_sync_time = date( "c" );
     if ( !$this->debug ) {
-        update_user_meta( $user->ID, 'shopify_last_sync_date', $new_sync_time );
+        $this->set_last_sync_time();
     }
     if ($this->debug) {
         $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json?name='.$this->order.'&status=any';
