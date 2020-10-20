@@ -6,25 +6,15 @@ class Konimbo extends \Priority_Hub {
 	function get_orders_by_user() {
         $user = $this->get_user();
 		$token = get_user_meta( $user->ID, 'konimbo_token', true );
-		switch($this->document){
-            case 'order':
-                $last_sync_time = get_user_meta( $user->ID, 'konimbo_orders_last_sync_time', true );
-                break;
-            case 'receipt':
-                $last_sync_time = get_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', true );
-                break;
-        }
+		$last_sync_time = $this->get_last_sync_time();
 		$konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
 		$order_id         = '';
-		$new_sync_time = date( "c" );
         $filter_status = '';
             switch($this->document){
                 case 'order':
-                    update_user_meta( $user->ID, 'konimbo_orders_last_sync_time', $new_sync_time );
                     $filter_status = '&payment_status=אשראי - מלא';
                     break;
                 case 'receipt':
-                    update_user_meta( $user->ID, 'konimbo_receipts_last_sync_time', $new_sync_time );
                     $filter_status = '&payment_status=שולם';
                     break;
             }
@@ -32,15 +22,17 @@ class Konimbo extends \Priority_Hub {
 		if($daysback>0){
             $last_sync_time = date(DATE_ATOM, mktime(0, 0, 0, date("m") , date("d")-$daysback,date("Y")));
         }
-        $orders_limit  = '&created_at_min=' . $last_sync_time;
-        //$orders_limit     = '&created_at_min=2020-10-06T00:00:00Z&created_at_max=2020-10-07T00:00:00Z';
-        $orders_limit     = '&created_at_min=2020-10-06T00:00:00Z';
-        $konimbo_url   = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
 		// debug url
 		if ($this->debug||$this->order) {
 			$order = $this->order;
 			$konimbo_url = 'https://api.konimbo.co.il/v1/orders/'.$order.'?token='.$token;
-		}
+		}else{
+            $this->set_last_sync_time();
+            $orders_limit       = '&created_at_min=' . $last_sync_time;
+            //$orders_limit     = '&created_at_min=2020-10-06T00:00:00Z&created_at_max=2020-10-07T00:00:00Z';
+            //$orders_limit       = '&created_at_min=2020-10-06T00:00:00Z';
+            $konimbo_url        = $konimbo_base_url . $order_id . $token . $orders_limit . $filter_status;
+        }
 		$method = 'GET';
 		$args   = [
 			'headers' => [],
@@ -48,23 +40,17 @@ class Konimbo extends \Priority_Hub {
 			'method'  => strtoupper( $method ),
 			//'sslverify' => $this->option('sslverify', false)
 		];
-
-
 		if ( ! empty( $options ) ) {
 			$args = array_merge( $args, $options );
 		}
 		$response = wp_remote_request( $konimbo_url, $args );
 		$subject = 'konimbo Error for user ' . get_user_meta( $user->ID, 'nickname', true );
-
 		if ( is_wp_error( $response ) ) {
-			//echo 'internal server error<br>';
-			//echo 'konimbo error: '.$response->get_error_message();
 			$this->sendEmailError($subject, $response->get_error_message() );
 		} else {
 			$respone_code    = (int) wp_remote_retrieve_response_code( $response );
 			$respone_message = $response['body'];
 			If ( $respone_code <= 201 ) {
-				//echo 'konimbo ok!!!<br>';
 				$orders = json_decode( $response['body'] );
 				if ( $this->debug ) {
 					$orders = [ json_decode( $response['body'] ) ];

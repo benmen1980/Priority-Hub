@@ -134,7 +134,7 @@ foreach ( $orders as $order ) {
 return $responses;
 } // return array of Priority responses by user
 function post_order_to_priority( $order ) {
-$user = $this->get_user;
+$user = $this->get_user();
 $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
 $data        = [
 'CUSTNAME' => $cust_number,

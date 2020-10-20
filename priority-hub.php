@@ -130,8 +130,8 @@ class Service
             'publicly_queryable' => true,
             'capability_type' => 'post',
         );
+        $post_type = strtolower($this->service.'_'.$document);
         register_post_type($this->service . '_' . $document, $args);
-
         //$this->custom_post_data_form_meta_box($document);
     }
     public function custom_post_data_form_meta_box()
@@ -161,7 +161,6 @@ class Service
         $class_name = $this->service;
         $class_service = new $class_name($doctype,$username);
         $class_service->post_user_by_username($username,null,$doctype);
-
     }
     function register_cron_action(){
         // cron

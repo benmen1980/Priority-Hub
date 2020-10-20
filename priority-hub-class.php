@@ -13,7 +13,7 @@ class Priority_Hub
         return $this->user;
     }
     function get_post_type(){
-        return strtolower($this->doctype.'_'.$this->service);
+        return strtolower($this->service.'_'.$this->doctype);
     }
     function get_doctype(){
         return strtolower($this->doctype);
@@ -193,7 +193,7 @@ class Priority_Hub
             // Create post object
             $ret_doc_name = $this->doctype == 'order' ? 'ORDNAME' : 'IVNUM';
             $my_post = array(
-                'post_type' => 'konimbo_receipt',
+                'post_type' => $this->get_service_name().'_'.$this->get_doctype(),
                 'post_title' => $error_prefix . $doc->name . ' ' . $doc->id,
                 'post_content' => json_encode($response),
                 'post_status' => 'publish',
@@ -232,7 +232,7 @@ class Priority_Hub
                     }
                     if ( $response_code >= 400 && $response_code < 500 ) {
                         $is_error = true;
-                        $message .= 'Error while posting '.$this->get_doctype().', Order '. $order . '<br>';
+                        $message .= 'Error while posting '.$this->get_doctype().' '. $order . '<br>';
                         $interface_errors = $response_body->FORM->InterfaceErrors;
                         if ( is_array( $interface_errors ) ) {
                             foreach ( $interface_errors as $err_line ) {
