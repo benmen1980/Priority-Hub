@@ -350,4 +350,34 @@ $user = $this->get_user();
 
         return $response;
     }
+function update_products_to_service(){
+    $user = $this->get_user();
+    $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/products.json';
+    $method = 'POST';
+    $YOUR_USERNAME = get_user_meta( $user->ID, 'shopify_username', true );
+    $YOUR_PASSWORD = get_user_meta( $user->ID, 'shopify_password', true );
+
+    $products = $this->get_products_from_priority();
+    foreach ($products as $product){
+        $p_data['title'] = $product['PARTDES'];
+        $p_data['sku'] = $product['PARTNAME'];
+        $p_data['product_type'] = $product['FAMILYNAME'];
+        $data['product'] = $p_data;
+        $args   = [
+            'headers' => array(
+                'Authorization' => 'Basic ' . base64_encode( $YOUR_USERNAME . ':' . $YOUR_PASSWORD ),
+                'Content-Type'  => 'application/json'
+            ),
+            'timeout' => 450,
+            'method'  => strtoupper( $method ),
+            //'sslverify' => $this->option('sslverify', false)
+            'body'    => json_encode($data)
+        ];
+        if ( ! empty( $options ) ) {
+            $args = array_merge( $args, $options );
+        }
+        $responses[] = wp_remote_request( $shopify_base_url, $args );
+    }
+    return $responses;
+    }
 }

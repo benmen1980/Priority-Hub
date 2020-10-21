@@ -18,7 +18,7 @@
 */
 
 
-define('PHUB_VERSION'       , '1.03');
+define('PHUB_VERSION'       , '1.04');
 define('PHUB_SELF'          , __FILE__);
 define('PHUB_URI'           , plugin_dir_url(__FILE__));
 define('PHUB_DIR'           , plugin_dir_path(__FILE__));

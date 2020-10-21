@@ -15,6 +15,7 @@ echo ('<br><br>');
                 <option value="otc">Over The counter invoice</option>
                 <option value="invoice">Sales Invoice</option>
                 <option value="orderreceipt">Order + Receipt</option>
+                <option value="sync_products_to_shopify">Sync products to Shopify</option>
             </select>
             <label>Select Priority Entity target</label></div>
         <input type="text" name="shopify_order" value=""><span>Post single Order, if you keep it empty, the system will post all orders from last sync date as defined in the user page</span></div>
@@ -24,7 +25,7 @@ echo ('<br><br>');
         //<input type="submit" value="Click here to sync konimbo to Priority"> 4567567
 
         wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
-        submit_button('Get Orders');
+        submit_button('Execute API');
 
         ?>
     </form>

@@ -127,6 +127,11 @@ class Priority_Hub
         $this->debug = null != $order;
         $this->generalpart = '';
         // process
+        if('sync_products_to_shopify' == $this->get_doctype()){
+            $products = $this->update_products_to_service();
+            $message['message'] = 'Update Products to Shopify Done!';
+            return $message;
+        }
         $orders = $this->get_orders_by_user();
         $responses[$user->ID] = $this->process_documents($orders);
         $messages =  $this->processResponse($responses);
@@ -275,6 +280,29 @@ class Priority_Hub
     }
     function post_receipt_to_priority($invoice){
         return null;
+    }
+    function get_products_from_priority(){
+        $additional_url = 'LOGPART';
+        $response = $this->makeRequest( 'GET', $additional_url, null,$this->get_user());
+        if(isset($response['code'])){
+            $response_code = (int) $response['code'];
+            if ( $response_code >= 200 & $response_code <= 201 ) {
+                $products = json_decode( $response['body'],true)['value'];
+                return  $products;
+            }
+            if ( $response_code >= 400 && $response_code < 500 ) {
+
+            }elseif(500 == $response_code || 0 == $response_code){
+
+            }
+        }elseif(isset($response['response']['code'])){
+
+        }
+    }
+    // service
+    function update_products_to_service(){
+        $products = $this->get_products_from_priority();
+        return $products;
     }
 
 
