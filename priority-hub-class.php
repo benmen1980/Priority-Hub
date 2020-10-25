@@ -301,8 +301,7 @@ class Priority_Hub
     }
     // service
     function update_products_to_service(){
-        $products = $this->get_products_from_priority();
-        return $products;
+      // each service has unique function
     }
 
 
