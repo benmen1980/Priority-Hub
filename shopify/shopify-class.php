@@ -91,6 +91,10 @@ foreach ( $orders as $order ) {
             case 'otc':
                 $response = $this->post_otc_to_priority($order,$user);
                 break;
+             case 'shipment':
+                $response = $this->post_shipment_to_priority($order,$user);
+                break;
+
         }
     $responses[$order->id]= $response;
     $response_body = json_decode($response['body']);
@@ -289,6 +293,83 @@ $user = $this->get_user();
         $response = $this->makeRequest( 'POST', 'EINVOICES', [ 'body' => json_encode( $data ) ], $user );
         return $response;
     }
+function post_shipment_to_priority( $order ) {
+        $user = $this->get_user();
+        $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
+        $data        = [
+            'CUSTNAME' => $cust_number,
+            'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
+            'CURDATE'  => date('Y-m-d', strtotime($order->created_at)),
+            'BOOKNUM'  => 'SHOPIFY'.$order->name,
+        ];
+// billing customer details
+        $customer_data                = [
+            'PHONE' => $order->customer->phone,
+            'EMAIL' => $order->customer->email,
+            'ADRS'  => $order->default_address->address1,
+        ];
+        $data['DOCUMENTS_DCONT_SUBFORM'][] = $customer_data;
+// shipping
+        $shipping_data           = [
+            'NAME'      => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
+            'CUSTDES'   => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
+            'PHONENUM'  => $order->shipping_address->phone,
+            'ADDRESS'   => $order->shipping_address->address1,
+            'STATE'      => $order->shipping_address->city
+        ];
+        $data['SHIPTO2_SUBFORM'] = $shipping_data;
+
+// get ordered items
+        foreach ( $order->line_items as $item ) {
+            $partname = $item->sku;
+// debug
+            if (!empty($this->generalpart)) {
+                $partname = '000';
+            }
+            $second_code = isset($item->second_code) ? $item->second_code : '';
+            $unit_price = isset($item->unit_price) ? (float) $item->unit_price : 0.0;
+            $quantity = isset($item->quantity) ? (int)$item->quantity : 0;
+            $data['TRANSORDER_D_SUBFORM'][] = [
+                'PARTNAME' => $partname,
+                'TQUANT'   => (int) $item->quantity,
+                'VPRICE' => (float)$item->price/(int) $item->quantity,
+//  if you are working without tax prices you need to modify this line Roy 7.10.18
+//'REMARK1'  =>$second_code,
+//'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
+            ];
+        }
+
+// get discounts as items
+        $discount =  $order->total_discount_set->presentment_money;
+        $discount_partname = '000';
+        if(!empty($discount)){
+            foreach ( $order->discounts as $item ) {
+                $data['TRANSORDER_D_SUBFORM'][] = [
+                    'PARTNAME' => $discount_partname,
+                    'TQUANT'   => (int)-1,
+                    'VPRICE' => (float) $discount->price * - 1.0,
+                    //'PDES'     => $item->title,
+                    //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
+                ];
+            }
+        }
+// shipping rate
+
+        $shipping = $order->total_shipping_price_set->presentment_money;
+
+        $data['TRANSORDER_D_SUBFORM'][] = [
+// 'PARTNAME' => $this->option('shipping_' . $shipping_method_id, $order->get_shipping_method()),
+            'PARTNAME' => '000',
+            'PDES'     => '',
+            'TQUANT'   => (int)1,
+            'VPRICE' => (float)$shipping->amount
+        ];
+       // $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
+// make request
+//echo json_encode($data);
+        $response = $this->makeRequest( 'POST', 'DOCUMENTS_D', [ 'body' => json_encode( $data ) ], $user );
+        return $response;
+    }
 function update_products_to_service(){
     $user = $this->get_user();
     $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/products.json';
@@ -319,7 +400,7 @@ function update_products_to_service(){
     }
     return $responses;
     }
-    function get_payment_details($order){
+function get_payment_details($order){
         // payment info
         $shopify_cards_dictionary   = array(
             1 => '1',  // Isracard

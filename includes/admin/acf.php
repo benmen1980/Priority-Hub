@@ -326,6 +326,31 @@ if( function_exists('acf_add_local_field_group') ):
                 'first_day' => 1,
             ),
             array(
+                'key' => 'field_5fa0853196b27',
+                'label' => 'Last Sync Time Shipment',
+                'name' => 'shopify_last_sync_time_shipment',
+                'type' => 'date_time_picker',
+                'instructions' => '',
+                'required' => 0,
+                'conditional_logic' => array(
+                    array(
+                        array(
+                            'field' => 'field_5f4ffe62418d1',
+                            'operator' => '==',
+                            'value' => '1',
+                        ),
+                    ),
+                ),
+                'wrapper' => array(
+                    'width' => '',
+                    'class' => '',
+                    'id' => '',
+                ),
+                'display_format' => 'd/m/Y g:i a',
+                'return_format' => 'd/m/Y g:i a',
+                'first_day' => 1,
+            ),
+            array(
                 'key' => 'field_5f8f56ca98875',
                 'label' => 'Last Sync Time OTC',
                 'name' => 'shopify_last_sync_time_otc',

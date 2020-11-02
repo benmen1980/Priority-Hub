@@ -76,6 +76,7 @@ class Service
         $this->register_custom_post_type('otc');
         $this->register_custom_post_type('Invoice');
         $this->register_custom_post_type('Receipt');
+        $this->register_custom_post_type('Shipment');
         add_action('add_meta_boxes', array($this, 'custom_post_data_form_meta_box'));
         $this->register_cron_action();
 

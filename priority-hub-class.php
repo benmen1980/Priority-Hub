@@ -9,6 +9,10 @@ class Priority_Hub
     {
         return 'hub';
     }
+    function get_service_name_lower()
+    {
+        return strtolower($this->get_service_name());
+    }
     function get_user(){
         return $this->user;
     }
@@ -23,6 +27,37 @@ class Priority_Hub
         $this->service = $this->get_service_name();
         $this->user =  get_user_by('login',$username);
         $this->doctype = $doctype;
+    }
+    public function generate_hub_form(){
+        ?>
+
+    <form action="<?php echo esc_url( admin_url('admin.php?page=priority-hub&tab=shopify')); ?>" method="post">
+            <input type="hidden" name="<?php echo $this->get_service_name_lower(); ?>>_action" value="sync_<?php echo $this->get_service_name_lower(); ?>">
+            <div><input type="checkbox" name="<?php echo $this->get_service_name_lower(); ?>_generalpart" value="generalpart"><span>Post general item</span></div>
+            <div><input type="text" name="<?php echo $this->get_service_name_lower(); ?>_username"><span>User Name</span></div>
+            <div>
+                <select value="" name="<?php echo $this->get_service_name_lower(); ?>_document" id="<?php echo $this->get_service_name_lower(); ?>_document">
+                    <option selected="selected"></option>
+                    <option value="order">Order</option>
+                    <option value="otc">Over The counter invoice</option>
+                    <option value="invoice">Sales Invoice</option>
+                    <option value="shipment">Shipment</option>
+                    <option value="orderreceipt">Order + Receipt</option>
+                    <option value="sync_products_to_<?php echo $this->get_service_name(); ?>">Sync products to <?php echo $this->get_service_name(); ?></option>
+                </select>
+                <label>Select Priority Entity target</label></div>
+            <input type="text" name="<?php echo $this->get_service_name_lower(); ?>_order" value=""><span>Post single Order, if you keep it empty, the system will post all orders from last sync date as defined in the user page</span></div>
+
+            <br>
+        <?php
+        //<input type="submit" value="Click here to sync konimbo to Priority"> 4567567
+
+        wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
+        submit_button('Execute API');
+
+        ?>
+    </form>
+     <?php
     }
     public function run()
     {
@@ -183,6 +218,9 @@ class Priority_Hub
                     break;
                 case 'receipt':
                     $response = $this->post_receipt_to_priority($doc);
+                    break;
+                case 'shipment':
+                    $response = $this->post_shipment_to_priority($doc);
                     break;
             }
             $responses[$doc->id] = $response;

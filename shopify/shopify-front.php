@@ -36,6 +36,7 @@ echo ('<br><br>');
                             <option value="otc">Over The Counter Invoice</option>
                             <option value="invoice">Sales Invoice</option>
                             <option value="orderreceipt">Sales Order + Receipt</option>
+                            <option value="shipment">Shipment</option>
                         </select>
                     </td>
                 </tr>
