@@ -100,7 +100,7 @@ class Priority_Hub
     }
     public function sendEmailError($subject = '', $error = '')
     {
-        $user = wp_get_current_user();
+        $user =  $this->get_user();
         $emails = [$user->user_email, get_bloginfo('admin_email')];
         if (!$emails) return;
 

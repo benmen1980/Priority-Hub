@@ -206,42 +206,10 @@ $data['ORDERITEMS_SUBFORM'][] = [
 'TQUANT'   => (int)1,
 'VATPRICE' => (float)$shipping->amount
 ];
-
-
-
-// payment info
-$payment              = $order->payment_details;
-$shopify_cards_dictionary   = array(
-1 => '1',  // Isracard
-2 => '5',  // Visa
-3 => '3',  // Diners
-4 => '4',  // Amex
-5 => '5',  // JCB
-6 => '6'   // Leumi Card
-);
-$payment_code               = $payment->credit_card_bin;
-$data['PAYMENTDEF_SUBFORM'] = [
-'PAYMENTCODE' => $payment_code,
-'QPRICE'      => (float) $order->total_price_set->presentment_money->amount,
-// shopify can handle multi paymnets so this might be modified
-//'PAYACCOUNT'  => '',
-//'PAYCODE'     => '',
-'PAYACCOUNT'  => $payment->credit_card_number,
-//'VALIDMONTH'  => $credit_cart_payments->card_expiration,
-//'CCUID'       => $credit_cart_payments->credit_cart_token,
-//'CONFNUM'     => $credit_cart_payments->order_confirmation_id,
-//'ROYY_NUMBEROFPAY' => $order_payments,
-//'FIRSTPAY' => $order_first_payment,
-//'ROYY_SECONDPAYMENT' => $order_periodical_payment
-
-];
-
-// make request
-//PriorityAPI\API::instance()->run();
+$data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
 // make request
 //echo json_encode($data);
 $response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
-
 return $response;
 }
 function post_otc_to_priority( $order ) {
@@ -270,7 +238,6 @@ $user = $this->get_user();
             'STATE'      => $order->shipping_address->city
         ];
         $data['SHIPTO2_SUBFORM'] = $shipping_data;
-
 // get ordered items
         foreach ( $order->line_items as $item ) {
             $partname = $item->sku;
@@ -316,39 +283,10 @@ $user = $this->get_user();
             'TOTPRICE' => (float)$shipping->amount
         ];
         }
-// payment info
-        $payment              = $order->payment_details;
-        $shopify_cards_dictionary   = array(
-            1 => '1',  // Isracard
-            2 => '5',  // Visa
-            3 => '3',  // Diners
-            4 => '4',  // Amex
-            5 => '5',  // JCB
-            6 => '6'   // Leumi Card
-        );
-        $payment_code               = $payment->credit_card_bin;
-        $data['EPAYMENT2_SUBFORM'][] = [
-            'PAYMENTCODE' => $payment_code,
-            'QPRICE'      => (float) $order->total_price_set->presentment_money->amount,
-// shopify can handle multi paymnets so this might be modified
-//'PAYACCOUNT'  => '',
-//'PAYCODE'     => '',
-            'PAYACCOUNT'  => $payment->credit_card_number,
-//'VALIDMONTH'  => $credit_cart_payments->card_expiration,
-//'CCUID'       => $credit_cart_payments->credit_cart_token,
-//'CONFNUM'     => $credit_cart_payments->order_confirmation_id,
-//'ROYY_NUMBEROFPAY' => $order_payments,
-//'FIRSTPAY' => $order_first_payment,
-//'ROYY_SECONDPAYMENT' => $order_periodical_payment
 
-        ];
-
-// make request
-//PriorityAPI\API::instance()->run();
-// make request
-//echo json_encode($data);
+        $data['EPAYMENT2_SUBFORM'][] = $this->get_payment_details($order);
+        // make request
         $response = $this->makeRequest( 'POST', 'EINVOICES', [ 'body' => json_encode( $data ) ], $user );
-
         return $response;
     }
 function update_products_to_service(){
@@ -380,5 +318,30 @@ function update_products_to_service(){
         $responses[] = wp_remote_request( $shopify_base_url, $args );
     }
     return $responses;
+    }
+    function get_payment_details($order){
+        // payment info
+        $shopify_cards_dictionary   = array(
+            1 => '1',  // Isracard
+            2 => '5',  // Visa
+            3 => '3',  // Diners
+            4 => '4',  // Amex
+            5 => '5',  // JCB
+            6 => '6'   // Leumi Card
+        );
+        $payment_code               = ''; // Shopify does not provide credit card data
+        $data = [
+            'PAYMENTCODE' => $payment_code,
+            'QPRICE'      => (float) $order->total_price_set->presentment_money->amount,
+            // shopify can handle multi paymnets so this might be modified
+            //'PAYACCOUNT'  => '',
+            //'PAYCODE'     => '',
+            //'PAYACCOUNT'  => '',
+            //'VALIDMONTH'  => '',
+            'CCUID'       => $order->token,
+            'CONFNUM'     => $order->checkout_token,
+            //'FIRSTPAY' => $order_first_payment,
+        ];
+        return $data;
     }
 }
