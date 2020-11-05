@@ -15,6 +15,9 @@ if ( isset( $_POST['submit'] ) && isset($_POST['shopify_username'])&& isset($_PO
         echo 'User does not set to integrate with Shopify';
     }
     $shopify = new Shopify($_POST['shopify_document'],$_POST['shopify_username']);
+    if(!empty($_POST['shopify_order'])){
+        $shopify->debug = true;
+    }
     $message = $shopify->post_user_by_username($_POST['shopify_username'],$_POST['shopify_order'],$_POST['shopify_document']);
     echo $message['message'];
 }

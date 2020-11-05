@@ -184,25 +184,10 @@ $data['ORDERITEMS_SUBFORM'][] = [
 //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
 ];
 }
-
 // get discounts as items
-$discount =  $order->total_discount_set->presentment_money;
-$discount_partname = '000';
-if(!empty($discount)){
-    foreach ( $order->discounts as $item ) {
-    $data['ORDERITEMS_SUBFORM'][] = [
-    'PARTNAME' => $discount_partname,
-    'TQUANT'   => (int)-1,
-    'VATPRICE' => (float) $discount->price * - 1.0,
-    //'PDES'     => $item->title,
-    //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
-    ];
-    }
-}
+    $data['ORDERITEMS_SUBFORM'][] = $this->get_payment_details($order);
 // shipping rate
-
 $shipping = $order->total_shipping_price_set->presentment_money;
-
 $data['ORDERITEMS_SUBFORM'][] = [
 // 'PARTNAME' => $this->option('shipping_' . $shipping_method_id, $order->get_shipping_method()),
 'PARTNAME' => '000',
@@ -263,19 +248,13 @@ $user = $this->get_user();
         }
 
 // get discounts as items
-        $discount =  $order->total_discount_set->presentment_money;
+        //$discount =  $order->total_discount_set->presentment_money;
         $discount_partname = '000';
-        if(!empty($discount)){
-            foreach ( $order->discounts as $item ) {
-                $data['EINVOICEITEMS_SUBFORM'][] = [
-                    'PARTNAME' => $discount_partname,
-                    'TQUANT'   => (int)-1,
-                    'TOTPRICE' => (float) $discount->price * - 1.0,
-                    //'PDES'     => $item->title,
-                    //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
-                ];
-            }
+        $discount_codes = $order->discount_codes;
+        foreach ( $discount_codes as $discount_line) {
+            $data['EINVOICEITEMS_SUBFORM'][] = $this->get_discounts($order);
         }
+
 // shipping rate
 
         $shipping = $order->total_shipping_price_set->presentment_money;
@@ -293,6 +272,20 @@ $user = $this->get_user();
         $response = $this->makeRequest( 'POST', 'EINVOICES', [ 'body' => json_encode( $data ) ], $user );
         return $response;
     }
+function  get_discounts($order){
+    //$discount =  $order->total_discount_set->presentment_money;
+    $discount_partname = '000';
+    $discount_codes = $order->discount_codes;
+    foreach ( $discount_codes as $discount_line) {
+        $data = [
+            'PARTNAME' => $discount_partname,
+            'TQUANT'   => (int)-1,
+            'TOTPRICE' => (float) $discount_line->amount * - 1.0,
+            'PDES'     => $discount_line->code.' '.$discount_line->type,
+        ];
+    }
+    return $data;
+}
 function post_shipment_to_priority( $order ) {
         $user = $this->get_user();
         $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
@@ -411,6 +404,7 @@ function get_payment_details($order){
             6 => '6'   // Leumi Card
         );
         $payment_code               = ''; // Shopify does not provide credit card data
+        $payment_code = $this->get_user_api_config('PAYMENTCODE');
         $data = [
             'PAYMENTCODE' => $payment_code,
             'QPRICE'      => (float) $order->total_price_set->presentment_money->amount,
@@ -425,4 +419,11 @@ function get_payment_details($order){
         ];
         return $data;
     }
+function get_user_api_config($key){
+    $value = json_decode(get_user_meta($this->get_user()->ID,'description',true))->$key;
+    if(is_null($value)){
+        return '';
+    }
+    return $value;
+}
 }

@@ -185,7 +185,7 @@ class Priority_Hub
         $index = 0;
         $error = '';
         $responses = [];
-        if (empty($documents)) {
+        if (empty($documents) && !$this->debug) {
             return;
         }
         foreach ($documents as $doc) {
@@ -203,7 +203,7 @@ class Priority_Hub
             // The Query
             $the_query = new WP_Query($args);
             // The Loop
-            if ($the_query->have_posts()) {
+            if ($the_query->have_posts() && !$this->debug) {
                 continue;
             }
             switch ($this->get_doctype()) {
