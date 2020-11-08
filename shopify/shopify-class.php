@@ -178,7 +178,8 @@ $quantity = isset($item->quantity) ? (int)$item->quantity : 0;
 $data['ORDERITEMS_SUBFORM'][] = [
 'PARTNAME' => $partname,
 'TQUANT'   => (int) $item->quantity,
-'VATPRICE' => (float)$item->price,
+'VATPRICE' => (float)$item->price * (float)$item->quantity - $item->total_discount,
+
 //  if you are working without tax prices you need to modify this line Roy 7.10.18
 //'REMARK1'  =>$second_code,
 //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
