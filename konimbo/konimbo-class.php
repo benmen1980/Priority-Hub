@@ -81,7 +81,7 @@ class Konimbo extends \Priority_Hub {
 		$customer_data                = [
 			'PHONE' => $order->phone,
 			'EMAIL' => $order->email,
-			'ADRS'  => $order->address,
+			//'ADRS'  => $order->address,
 		];
 		$data['ORDERSCONT_SUBFORM'][] = $customer_data;
 		// shipping
@@ -91,7 +91,13 @@ class Konimbo extends \Priority_Hub {
 			'PHONENUM'  => $order->phone,
 			//	'EMAIL'     => $order->email,
 			//	'CELLPHONE' => $order->phone,
-			'ADDRESS'   => $order->address,
+            'STATE'     => $order->address->city,
+			'ADDRESS'   => $order->address->street,
+            'ADDRESS2'  => $order->address->street_number,
+            'ADDRESS3'  => $order->address->apartment,
+            'ZIP'       => $order->address->zip_code,
+            'ADDRESSA'  => $order->address->post_office_box
+
 		];
 		$data['SHIPTO2_SUBFORM'] = $shipping_data;
 

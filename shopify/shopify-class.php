@@ -406,6 +406,9 @@ function get_payment_details($order){
         );
         $payment_code               = ''; // Shopify does not provide credit card data
         $payment_code = $this->get_user_api_config('PAYMENTCODE');
+        if('paypal' == $order->gateway){
+            $payment_code = $this->get_user_api_config('PAYPALCODE');
+        }
         $data = [
             'PAYMENTCODE' => $payment_code,
             'QPRICE'      => (float) $order->total_price_set->presentment_money->amount,
