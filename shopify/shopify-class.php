@@ -23,7 +23,8 @@ function get_orders_by_user(  ) {
     $YOUR_PASSWORD = get_user_meta( $user->ID, 'shopify_password', true );
     $args   = [
         'headers' => array(
-            'Authorization' => 'Basic ' . base64_encode( $YOUR_USERNAME . ':' . $YOUR_PASSWORD )
+            'Authorization' => 'Basic ' . base64_encode( $YOUR_USERNAME . ':' . $YOUR_PASSWORD ),
+            'rel' => 'next'
     ),
         'timeout' => 450,
         'method'  => strtoupper( $method ),
@@ -41,6 +42,36 @@ function get_orders_by_user(  ) {
         $respone_message = $response['body'];
         If ( $respone_code <= 201 ) {
             $orders = json_decode( $response['body'] )->orders;
+            $header = $response['headers'];
+            $header_data = $header->getAll();
+            //$header_data = $header['data'];
+            $header_url = explode('<',$header_data['link'],2)[1];
+            $header_url = explode('>',$header_url,2)[0];
+            while($header_url) {
+                $response2 = wp_remote_request($header_url,$args);
+                if ($respone_code <= 201) {
+                    $next_orders = json_decode($response2['body'])->orders;
+                    if(sizeof($next_orders)==0){
+                        break;
+                    }
+                    $orders = array_merge($orders, $next_orders);
+                    $header = $response2['headers'];
+                    $header_data = $header->getAll();
+                    //$header_data = $header['data'];
+                    $rel_next = explode(',',$header_data['link'])[1];
+                    if(null==$rel_next){
+                        break;
+                    }
+                    if(isset($rel_next)){
+                        $new_url = $rel_next;
+                    }else{
+                        $new_url = $header_data['link'];
+                    }
+                    $header_url = explode('<', $new_url, 2)[1];
+                    $header_url = explode('>', $header_url, 2)[0];
+
+                }
+            }
             if ( $this->debug ) {
                 //$orders = [json_decode( $response['body'])->orders];
             }
