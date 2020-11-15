@@ -457,10 +457,262 @@ function get_payment_details($order){
         return $data;
     }
 function get_user_api_config($key){
-    $value = json_decode(get_user_meta($this->get_user()->ID,'description',true))->$key;
-    if(is_null($value)){
-        return '';
-    }
-    return $value;
+    return json_decode(get_user_meta($this->get_user()->ID,'description',true))->$key ?? null;
 }
+function set_inventory_level_to_location($location_id){
+    // get inventory from Priority
+    $daysback = $this->get_user_api_config('SYNC_INVENTORY_DAYS_BACK') ?? '3';
+    $stamp = mktime(1 - ($daysback*24), 0, 0);
+    $bod = date(DATE_ATOM,$stamp);
+    $url_time_filter = urlencode('(WARHSTRANSDATE ge '.$bod. ' or PURTRANSDATE ge '.$bod .' or SALETRANSDATE ge '.$bod.')');
+    $url_eddition = 'LOGPART?$filter='.$url_time_filter.'&$select=PARTNAME&$expand=LOGCOUNTERS_SUBFORM,PARTBALANCE_SUBFORM($select=WARHSNAME,LOCNAME,TBALANCE)';
+    $response = $this->makeRequest( 'GET', $url_eddition, null, $this->get_user());
+    if($response['code']== '200'){
+        $items = json_decode($response['body'])->value;
+    }else{
+        $error_message = $response['body'];
+        $this->sendEmailError('Shopify Error while sync inventory',$error_message);
+        return $error_message;
+    }
+    // get from Shopify
+    $inventory_levels =  $this->get_stock_level_from_shopify($location_id);
+    $variants = $this->get_list_of_variants_from_shopify();
+    // loop over items
+    foreach($items as $item){
+        $sku = $item->PARTNAME;
+        $priority_stock = $item->LOGCOUNTERS_SUBFORM[0]->BALANCE;
+        foreach($variants as $variant){
+            if($variant->sku == $sku){
+             $id = $variant->id;
+             $inventory_management = $variant->inventory_management;
+             $inventory_item_id = $variant->inventory_item_id;
+             // compare Shopify stock and Priority stock
+             foreach($inventory_levels as $inv){
+                 if($inventory_item_id == $inv->inventory_item_id){
+                     if($inv->available != $priority_stock ){
+                         // update Shopify
+                        $this->set_inventory_level($location_id,$inventory_item_id,$priority_stock);
+                     }
+                 }
+             }
+             // do the trick of update variant data and stock !
+            }
+        }
+    }
+
+}
+function get_stock_level_from_shopify($location_id){
+    // get stock levels from Shopify
+    $shopify_base_url = 'https://'.get_user_meta( $this->get_user()->ID, 'shopify_url', true ).'/admin/api/2020-04/inventory_levels.json?location_ids='.$location_id;
+    $method = 'GET';
+    $YOUR_USERNAME = get_user_meta( $this->get_user()->ID, 'shopify_username', true );
+    $YOUR_PASSWORD = get_user_meta( $this->get_user()->ID, 'shopify_password', true );
+    $args   = [
+        'headers' => array(
+            'Authorization' => 'Basic ' . base64_encode( $YOUR_USERNAME . ':' . $YOUR_PASSWORD ),
+            'rel' => 'next'
+        ),
+        'timeout' => 450,
+        'method'  => strtoupper( $method ),
+        //'sslverify' => $this->option('sslverify', false)
+    ];
+    if ( ! empty( $options ) ) {
+        $args = array_merge( $args, $options );
+    }
+    $response = wp_remote_request( $shopify_base_url, $args );
+    $subject = 'shopify Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
+    if ( is_wp_error( $response ) ) {
+        $this->sendEmailError($subject, $response->get_error_message() );
+    } else {
+        $respone_code    = (int) wp_remote_retrieve_response_code( $response );
+        $respone_message = $response['body'];
+        If ( $respone_code <= 201 ) {
+            $inventory_levels = json_decode( $response['body'] )->inventory_levels;
+            $header = $response['headers'];
+            $header_data = $header->getAll();
+            //$header_data = $header['data'];
+            $header_url = explode('<',$header_data['link'],2)[1];
+            $header_url = explode('>',$header_url,2)[0];
+            while($header_url) {
+                $response2 = wp_remote_request($header_url,$args);
+                if ($respone_code <= 201) {
+                    $next_inventory_levels = json_decode($response2['body'])->inventory_levels;
+                    if(sizeof($next_inventory_levels)==0){
+                        break;
+                    }
+                    $inventory_levels = array_merge($inventory_levels, $next_inventory_levels);
+                    $header = $response2['headers'];
+                    $header_data = $header->getAll();
+                    //$header_data = $header['data'];
+                    $rel_next = explode(',',$header_data['link'])[1];
+                    if(null==$rel_next){
+                        break;
+                    }
+                    if(isset($rel_next)){
+                        $new_url = $rel_next;
+                    }else{
+                        $new_url = $header_data['link'];
+                    }
+                    $header_url = explode('<', $new_url, 2)[1];
+                    $header_url = explode('>', $header_url, 2)[0];
+
+                }
+            }
+            return $inventory_levels;
+        }
+        if ( $respone_code >= 400 && $respone_code <= 499 &&  $respone_code != 404 ) {
+            $error = $respone_message . '<br>' . $shopify_base_url;
+            $this->sendEmailError( $subject, $error );
+            return null;
+        }
+        if($respone_code == 404 ){
+            return null;
+        }
+    }
+}
+function get_list_of_variants_from_shopify(){
+        // get stock levels from Shopify
+        $shopify_base_url = 'https://'.get_user_meta( $this->get_user()->ID, 'shopify_url', true ).'/admin/api/2020-04/variants.json';
+        $method = 'GET';
+        $YOUR_USERNAME = get_user_meta( $this->get_user()->ID, 'shopify_username', true );
+        $YOUR_PASSWORD = get_user_meta( $this->get_user()->ID, 'shopify_password', true );
+        $args   = [
+            'headers' => array(
+                'Authorization' => 'Basic ' . base64_encode( $YOUR_USERNAME . ':' . $YOUR_PASSWORD ),
+                'rel' => 'next'
+            ),
+            'timeout' => 450,
+            'method'  => strtoupper( $method ),
+            //'sslverify' => $this->option('sslverify', false)
+        ];
+        if ( ! empty( $options ) ) {
+            $args = array_merge( $args, $options );
+        }
+        $response = wp_remote_request( $shopify_base_url, $args );
+        $subject = 'shopify Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
+        if ( is_wp_error( $response ) ) {
+            $this->sendEmailError($subject, $response->get_error_message() );
+        } else {
+            $respone_code    = (int) wp_remote_retrieve_response_code( $response );
+            $respone_message = $response['body'];
+            If ( $respone_code <= 201 ) {
+                $products = json_decode( $response['body'] )->variants;
+                $header = $response['headers'];
+                $header_data = $header->getAll();
+                //$header_data = $header['data'];
+                $header_url = explode('<',$header_data['link'],2)[1];
+                $header_url = explode('>',$header_url,2)[0];
+                while($header_url) {
+                    $response2 = wp_remote_request($header_url,$args);
+                    if ($respone_code <= 201) {
+                        $next_products = json_decode($response2['body'])->variants;
+                        if(sizeof($next_products)==0){
+                            break;
+                        }
+                        $products = array_merge($products, $next_products);
+                        $header = $response2['headers'];
+                        $header_data = $header->getAll();
+                        //$header_data = $header['data'];
+                        $rel_next = explode(',',$header_data['link'])[1];
+                        if(null==$rel_next){
+                            break;
+                        }
+                        if(isset($rel_next)){
+                            $new_url = $rel_next;
+                        }else{
+                            $new_url = $header_data['link'];
+                        }
+                        $header_url = explode('<', $new_url, 2)[1];
+                        $header_url = explode('>', $header_url, 2)[0];
+
+                    }
+                }
+                return $products;
+            }
+            if ( $respone_code >= 400 && $respone_code <= 499 &&  $respone_code != 404 ) {
+                $error = $respone_message . '<br>' . $shopify_base_url;
+                $this->sendEmailError( $subject, $error );
+                return null;
+            }
+            if($respone_code == 404 ){
+                return null;
+            }
+        }
+    }
+function set_inventory_level($location_id,$inventory_item_id,$available){
+        // set stock level
+        $shopify_base_url = 'https://'.get_user_meta( $this->get_user()->ID, 'shopify_url', true ).'/admin/api/2020-04/inventory_levels/set.json';
+        $method = 'POST';
+        $YOUR_USERNAME = get_user_meta( $this->get_user()->ID, 'shopify_username', true );
+        $YOUR_PASSWORD = get_user_meta( $this->get_user()->ID, 'shopify_password', true );
+        $body = [
+            'location_id'       => $location_id,
+            'inventory_item_id' => $inventory_item_id,
+            'available'         => $available
+        ];
+        $args   = [
+            'headers' => array(
+                'Authorization' => 'Basic ' . base64_encode( $YOUR_USERNAME . ':' . $YOUR_PASSWORD ),
+                'Content-Type'  => 'application/json'
+            ),
+            'timeout' => 450,
+            'data_format' => 'body',
+            'method'  => strtoupper( $method ),
+            'body'    =>  json_encode( $body ),
+            //'sslverify' => $this->option('sslverify', false),
+        ];
+        if (!empty($options)){
+            $args = array_merge( $args, $options );
+        }
+        $response = wp_remote_request( $shopify_base_url, $args );
+        $subject = 'shopify Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
+        if ( is_wp_error( $response ) ) {
+            $this->sendEmailError($subject, $response->get_error_message() );
+        } else {
+            $respone_code    = (int) wp_remote_retrieve_response_code( $response );
+            $respone_message = $response['body'];
+            If ( $respone_code <= 201 ) {
+                $products = json_decode( $response['body'] )->variants;
+                $header = $response['headers'];
+                $header_data = $header->getAll();
+                //$header_data = $header['data'];
+                $header_url = explode('<',$header_data['link'],2)[1];
+                $header_url = explode('>',$header_url,2)[0];
+                while($header_url) {
+                    $response2 = wp_remote_request($header_url,$args);
+                    if ($respone_code <= 201) {
+                        $next_products = json_decode($response2['body'])->variants;
+                        if(sizeof($next_products)==0){
+                            break;
+                        }
+                        $products = array_merge($products, $next_products);
+                        $header = $response2['headers'];
+                        $header_data = $header->getAll();
+                        //$header_data = $header['data'];
+                        $rel_next = explode(',',$header_data['link'])[1];
+                        if(null==$rel_next){
+                            break;
+                        }
+                        if(isset($rel_next)){
+                            $new_url = $rel_next;
+                        }else{
+                            $new_url = $header_data['link'];
+                        }
+                        $header_url = explode('<', $new_url, 2)[1];
+                        $header_url = explode('>', $header_url, 2)[0];
+
+                    }
+                }
+                return $products;
+            }
+            if ( $respone_code >= 400 && $respone_code <= 499 &&  $respone_code != 404 ) {
+                $error = $respone_message . '<br>' . $shopify_base_url;
+                $this->sendEmailError( $subject, $error );
+                return null;
+            }
+            if($respone_code == 404 ){
+                return null;
+            }
+        }
+    }
 }

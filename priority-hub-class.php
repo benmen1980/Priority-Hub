@@ -44,6 +44,7 @@ class Priority_Hub
                     <option value="shipment">Shipment</option>
                     <option value="orderreceipt">Order + Receipt</option>
                     <option value="sync_products_to_<?php echo $this->get_service_name(); ?>">Sync products to <?php echo $this->get_service_name(); ?></option>
+                    <option value="sync_inventory_to_<?php echo $this->get_service_name(); ?>">Sync Inventory to <?php echo $this->get_service_name(); ?></option>
                 </select>
                 <label>Select Priority Entity target</label></div>
             <input type="text" name="<?php echo $this->get_service_name_lower(); ?>_order" value=""><span>Post single Order, if you keep it empty, the system will post all orders from last sync date as defined in the user page</span></div>
@@ -340,6 +341,9 @@ class Priority_Hub
     // service
     function update_products_to_service(){
       // each service has unique function
+    }
+    function set_inventory_level_to_location($location_id){
+        return null;
     }
 
 
