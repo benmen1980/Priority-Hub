@@ -357,7 +357,7 @@ function post_shipment_to_priority( $order ) {
             $data['TRANSORDER_D_SUBFORM'][] = [
                 'PARTNAME' => $partname,
                 'TQUANT'   => (int) $item->quantity,
-                'VPRICE' => (float)$item->price/(int) $item->quantity,
+                'VPRICE' => (float)$item->price,
 //  if you are working without tax prices you need to modify this line Roy 7.10.18
 //'REMARK1'  =>$second_code,
 //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
@@ -365,18 +365,16 @@ function post_shipment_to_priority( $order ) {
         }
 
 // get discounts as items
-        $discount =  $order->total_discount_set->presentment_money;
+        $discount =  $order->total_discounts_set->presentment_money;
         $discount_partname = '000';
         if(!empty($discount)){
-            foreach ( $order->discounts as $item ) {
                 $data['TRANSORDER_D_SUBFORM'][] = [
                     'PARTNAME' => $discount_partname,
                     'TQUANT'   => (int)-1,
-                    'VPRICE' => (float) $discount->price * - 1.0,
+                    'VPRICE' => (float) $discount->amount,
                     //'PDES'     => $item->title,
                     //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
                 ];
-            }
         }
 // shipping rate
 
