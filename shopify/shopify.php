@@ -19,12 +19,20 @@ if ( isset( $_POST['submit'] ) && isset($_POST['shopify_username'])&& isset($_PO
         $shopify->debug = true;
     }
     if ($_POST['shopify_document'] == 'sync_inventory_to_Shopify') {
-    $location_id = 13297680448; // need to fetch the location fro config
-        $message = $shopify->set_inventory_level_to_location($location_id);
+        //$location_id = 35456548943;
+        $location_id = $shopify->get_user_api_config('LOCATION_ID');
+        $sku = $_POST['shopify_order'];
+        $message['message'] = 'There are no inventory levels to sync <br>';
+        $updated_items = $shopify->set_inventory_level_to_location($location_id,$sku);
+        if(!empty($updated_items)) $message['message'] = 'List of inventory level updates <br>';
+        $is_error = null;
+        foreach ($updated_items as $item){
+            $message['message'] .= $item['sku']. ' >> '.$item['stock'].'<br>';
+        }
     } else {
     $message = $shopify->post_user_by_username($_POST['shopify_username'], $_POST['shopify_order'], $_POST['shopify_document']);
     }
-    echo $message['message'];
+    if(isset($message['message'])) echo $message['message'];
 }
 ?>
 <hr>

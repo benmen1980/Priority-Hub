@@ -47,7 +47,8 @@ class Priority_Hub
                     <option value="sync_inventory_to_<?php echo $this->get_service_name(); ?>">Sync Inventory to <?php echo $this->get_service_name(); ?></option>
                 </select>
                 <label>Select Priority Entity target</label></div>
-            <input type="text" name="<?php echo $this->get_service_name_lower(); ?>_order" value=""><span>Post single Order, if you keep it empty, the system will post all orders from last sync date as defined in the user page</span></div>
+            <input type="text" name="<?php echo $this->get_service_name_lower(); ?>_order" value="" placeholder="Order or SKU"><span><p>Post single Order, if you keep it empty, the system will post all orders from last sync date as defined in the user page<br>
+                                                                        In case of inventory sync, you can specify single product sku</p></span></div>
 
             <br>
         <?php
@@ -342,7 +343,7 @@ class Priority_Hub
     function update_products_to_service(){
       // each service has unique function
     }
-    function set_inventory_level_to_location($location_id){
+    function set_inventory_level_to_location($location_id,$sku){
         return null;
     }
 

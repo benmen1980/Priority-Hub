@@ -457,13 +457,17 @@ function get_payment_details($order){
 function get_user_api_config($key){
     return json_decode(get_user_meta($this->get_user()->ID,'description',true))->$key ?? null;
 }
-function set_inventory_level_to_location($location_id){
+function set_inventory_level_to_location($location_id,$partname){
     // get inventory from Priority
+    $updated_items = [];
     $daysback = $this->get_user_api_config('SYNC_INVENTORY_DAYS_BACK') ?? '3';
     $stamp = mktime(1 - ($daysback*24), 0, 0);
     $bod = date(DATE_ATOM,$stamp);
     $url_time_filter = urlencode('(WARHSTRANSDATE ge '.$bod. ' or PURTRANSDATE ge '.$bod .' or SALETRANSDATE ge '.$bod.')');
     $url_eddition = 'LOGPART?$filter='.$url_time_filter.'&$select=PARTNAME&$expand=LOGCOUNTERS_SUBFORM,PARTBALANCE_SUBFORM($select=WARHSNAME,LOCNAME,TBALANCE)';
+    if(!empty($partname)){
+        $url_eddition = 'LOGPART?$filter=PARTNAME eq \''.$partname.'\' &$select=PARTNAME&$expand=LOGCOUNTERS_SUBFORM,PARTBALANCE_SUBFORM($select=WARHSNAME,LOCNAME,TBALANCE)';
+    }
     $response = $this->makeRequest( 'GET', $url_eddition, null, $this->get_user());
     if($response['code']== '200'){
         $items = json_decode($response['body'])->value;
@@ -489,15 +493,20 @@ function set_inventory_level_to_location($location_id){
                  if($inventory_item_id == $inv->inventory_item_id){
                      if($inv->available != $priority_stock ){
                          // update Shopify
-                        $this->set_inventory_level($location_id,$inventory_item_id,$priority_stock);
+                         $response = $this->set_inventory_level($location_id,$inventory_item_id,$priority_stock);
+                         $updated_items[] = ['sku'=>$sku,'stock'=>$priority_stock,'response'=>$response];
                      }
                  }
+             }
+             if(empty($inventory_levels)){
+               $response = $this->set_inventory_level($location_id,$inventory_item_id,$priority_stock);
+               $updated_items[] = ['sku'=>$sku,'stock'=>$priority_stock,'response'=>$response];
              }
              // do the trick of update variant data and stock !
             }
         }
     }
-
+return $updated_items;
 }
 function get_stock_level_from_shopify($location_id){
     // get stock levels from Shopify
@@ -712,5 +721,6 @@ function set_inventory_level($location_id,$inventory_item_id,$available){
                 return null;
             }
         }
+
     }
 }
