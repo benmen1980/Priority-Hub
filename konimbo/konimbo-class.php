@@ -137,7 +137,7 @@ class Konimbo extends \Priority_Hub {
 				'PARTNAME' => $discount_partname,
 				'TQUANT'   => -1 * (int)$item->quantity,
 				'VATPRICE' => (float) $item->price * - 1.0 * (int)$item->quantity,
-				'PDES'     => $item->title,
+				'PDES'     => preg_replace( "/\r|\n/", "",$item->title),
 				//'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
 			];
 		}
