@@ -482,9 +482,16 @@ function set_inventory_level_to_location($location_id,$partname){
     // loop over items
     foreach($items as $item){
         $sku = $item->PARTNAME;
+        if($sku == 'B322LW02000BKOI' ){
+            $foo =1;
+        }
+        $data = ['user'=>$this->get_user(),'sku'=>$sku];
+        $data = apply_filters('priority_hub_shopify_inventory',$data);
+        $sku = $data['sku'];
         $priority_stock = $item->LOGCOUNTERS_SUBFORM[0]->BALANCE;
         foreach($variants as $variant){
-            if($variant->sku == $sku){
+            $shopify_sku = $variant->sku;
+            if($shopify_sku == $sku){
              $id = $variant->id;
              $inventory_management = $variant->inventory_management;
              $inventory_item_id = $variant->inventory_item_id;
