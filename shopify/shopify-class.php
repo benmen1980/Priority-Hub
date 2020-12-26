@@ -486,6 +486,7 @@ function set_inventory_level_to_location($location_id,$partname){
             $foo =1;
         }
         $data = ['user'=>$this->get_user(),'sku'=>$sku];
+        // use filter priority_hub_shopify_inventory to manipulate the PARTNAME
         $data = apply_filters('priority_hub_shopify_inventory',$data);
         $sku = $data['sku'];
         $priority_stock = $item->LOGCOUNTERS_SUBFORM[0]->BALANCE;
