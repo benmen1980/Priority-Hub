@@ -482,12 +482,8 @@ function set_inventory_level_to_location($location_id,$partname){
     // loop over items
     foreach($items as $item){
         $sku = $item->PARTNAME;
-        if($sku == 'B322LW02000BKOI' ){
-            $foo =1;
-        }
-        $data = ['user'=>$this->get_user(),'sku'=>$sku];
         // use filter priority_hub_shopify_inventory to manipulate the PARTNAME
-        $data = apply_filters('priority_hub_shopify_inventory',$data);
+        $data = apply_filters('priority_hub_shopify_inventory',['user'=>$this->get_user(),'sku'=>$sku]);
         $sku = $data['sku'];
         $priority_stock = $item->LOGCOUNTERS_SUBFORM[0]->BALANCE;
         foreach($variants as $variant){
@@ -502,13 +498,13 @@ function set_inventory_level_to_location($location_id,$partname){
                      if($inv->available != $priority_stock ){
                          // update Shopify
                          $response = $this->set_inventory_level($location_id,$inventory_item_id,$priority_stock);
-                         $updated_items[] = ['sku'=>$sku,'stock'=>$priority_stock,'response'=>$response];
+                         $updated_items[] = ['sku'=>$shopify_sku,'stock'=>$priority_stock,'response'=>$response];
                      }
                  }
              }
              if(empty($inventory_levels)){
                $response = $this->set_inventory_level($location_id,$inventory_item_id,$priority_stock);
-               $updated_items[] = ['sku'=>$sku,'stock'=>$priority_stock,'response'=>$response];
+               $updated_items[] = ['sku'=>$shopify_sku,'stock'=>$priority_stock,'response'=>$response];
              }
              // do the trick of update variant data and stock !
             }
