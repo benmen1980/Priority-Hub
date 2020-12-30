@@ -163,9 +163,15 @@ class Service
         $class_service = new $class_name($doctype,$username);
         $class_service->post_user_by_username($username,null,$doctype);
     }
+    function execute_cron_action_inv($username){
+        $class_name = $this->service;
+        $class_service = new $class_name('sync_inventory_to_Shopify',$username);
+        $class_service->post_user_by_username();
+    }
     function register_cron_action(){
         // cron
         add_action(strtolower($this->service).'_action',array($this,'execute_cron_action'),1,3);
+        add_action(strtolower($this->service).'_action_inv',array($this,'execute_cron_action'),1,3);
     }
 }
 

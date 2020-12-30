@@ -493,10 +493,12 @@ function set_inventory_level_to_location($location_id,$partname){
              $inventory_management = $variant->inventory_management;
              $inventory_item_id = $variant->inventory_item_id;
              // compare Shopify stock and Priority stock
+                $item_has_level = false;
              foreach($inventory_levels as $inv){
                  if($inventory_item_id == $inv->inventory_item_id){
                      if($inv->available != $priority_stock ){
                          // update Shopify
+                         $item_has_level = true;
                          $response = $this->set_inventory_level($location_id,$inventory_item_id,$priority_stock);
                          $updated_items[] = ['sku'=>$shopify_sku,'stock'=>$priority_stock,'response'=>$response];
                      }
@@ -511,6 +513,11 @@ function set_inventory_level_to_location($location_id,$partname){
         }
     }
 return $updated_items;
+}
+function set_inventory_level_to_user(){
+    $location_id = $this->get_user_api_config('LOCATION_ID');
+    $updated_items = $this->set_inventory_level_to_location($location_id,null);
+    error_log('Sync inventory to shopify '.print_r($updated_items));
 }
 function get_stock_level_from_shopify($location_id){
     // get stock levels from Shopify

@@ -346,6 +346,9 @@ class Priority_Hub
     function set_inventory_level_to_location($location_id,$sku){
         return null;
     }
+    function set_inventory_level_to_user($username){
+        return null;
+    }
 
 
 
