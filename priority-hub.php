@@ -171,7 +171,7 @@ class Service
     function register_cron_action(){
         // cron
         add_action(strtolower($this->service).'_action',array($this,'execute_cron_action'),1,3);
-        add_action(strtolower($this->service).'_action_inv',array($this,'execute_cron_action'),1,3);
+        add_action(strtolower($this->service).'_action_inv',array($this,'execute_cron_action_inv'),1,3);
     }
 }
 
