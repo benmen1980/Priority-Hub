@@ -166,7 +166,7 @@ class Service
     function execute_cron_action_inv($username){
         $class_name = $this->service;
         $class_service = new $class_name('sync_inventory_to_Shopify',$username);
-        $class_service->post_user_by_username();
+        $class_service->set_inventory_level_to_user();
     }
     function register_cron_action(){
         // cron

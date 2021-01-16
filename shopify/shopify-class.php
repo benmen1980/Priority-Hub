@@ -489,6 +489,9 @@ function set_inventory_level_to_location($location_id,$partname){
         foreach($variants as $variant){
             $shopify_sku = $variant->sku;
             if($shopify_sku == $sku){
+                if($sku == 'P211SYZ420500OF' || $sku == 'P211SYZ420500OI'){
+                    $foo = true;
+                }
              $id = $variant->id;
              $inventory_management = $variant->inventory_management;
              $inventory_item_id = $variant->inventory_item_id;
