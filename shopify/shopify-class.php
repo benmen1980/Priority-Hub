@@ -486,32 +486,33 @@ function set_inventory_level_to_location($location_id,$partname){
         $data = apply_filters('priority_hub_shopify_inventory',['user'=>$this->get_user(),'sku'=>$sku]);
         $sku = $data['sku'];
         $priority_stock = $item->LOGCOUNTERS_SUBFORM[0]->BALANCE;
-        foreach($variants as $variant){
-            $shopify_sku = $variant->sku;
-            if($shopify_sku == $sku){
-                if($sku == 'P211SYZ420500OF' || $sku == 'P211SYZ420500OI'){
-                    $foo = true;
+        if(!empty($variants)) {
+            foreach ($variants as $variant) {
+                $shopify_sku = $variant->sku;
+                if ($shopify_sku == $sku) {
+                    $id = $variant->id;
+                    $inventory_management = $variant->inventory_management;
+                    $inventory_item_id = $variant->inventory_item_id;
+                    // compare Shopify stock and Priority stock
+                    $item_has_level = false;
+
+                    if (empty($inventory_levels)) {
+                        $response = $this->set_inventory_level($location_id, $inventory_item_id, $priority_stock);
+                        $updated_items[] = ['sku' => $shopify_sku, 'stock' => $priority_stock, 'response' => $response];
+                    }else{
+                        foreach ($inventory_levels as $inv) {
+                            if ($inventory_item_id == $inv->inventory_item_id) {
+                                if ($inv->available != $priority_stock) {
+                                    // update Shopify
+                                    $item_has_level = true;
+                                    $response = $this->set_inventory_level($location_id, $inventory_item_id, $priority_stock);
+                                    $updated_items[] = ['sku' => $shopify_sku, 'stock' => $priority_stock, 'response' => $response];
+                                }
+                            }
+                        }
+                    }
+                    // do the trick of update variant data and stock !
                 }
-             $id = $variant->id;
-             $inventory_management = $variant->inventory_management;
-             $inventory_item_id = $variant->inventory_item_id;
-             // compare Shopify stock and Priority stock
-                $item_has_level = false;
-             foreach($inventory_levels as $inv){
-                 if($inventory_item_id == $inv->inventory_item_id){
-                     if($inv->available != $priority_stock ){
-                         // update Shopify
-                         $item_has_level = true;
-                         $response = $this->set_inventory_level($location_id,$inventory_item_id,$priority_stock);
-                         $updated_items[] = ['sku'=>$shopify_sku,'stock'=>$priority_stock,'response'=>$response];
-                     }
-                 }
-             }
-             if(empty($inventory_levels)){
-               $response = $this->set_inventory_level($location_id,$inventory_item_id,$priority_stock);
-               $updated_items[] = ['sku'=>$shopify_sku,'stock'=>$priority_stock,'response'=>$response];
-             }
-             // do the trick of update variant data and stock !
             }
         }
     }

@@ -343,7 +343,7 @@ class Priority_Hub
     function update_products_to_service(){
       // each service has unique function
     }
-    function set_inventory_level_to_location($sku){
+    function set_inventory_level_to_location($location_id,$sku){
         return null;
     }
     function set_inventory_level_to_user(){
