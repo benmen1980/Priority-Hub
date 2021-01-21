@@ -454,9 +454,6 @@ function get_payment_details($order){
         ];
         return $data;
     }
-function get_user_api_config($key){
-    return json_decode(get_user_meta($this->get_user()->ID,'description',true))->$key ?? null;
-}
 function set_inventory_level_to_location($location_id,$partname){
     // get inventory from Priority
     $updated_items = [];

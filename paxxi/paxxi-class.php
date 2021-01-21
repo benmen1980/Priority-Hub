@@ -1,5 +1,28 @@
 <?php
 class Paxxi extends \Priority_Hub {
+    private $service;
+    private $doctype;
+    private $user;
+    //
+    private $phone_prefix;
+    private $phone_number;
+    private $password;
+
+    public function __construct($doctype,$username)
+    {
+        $this->service = $this->get_service_name();
+        $this->user =  get_user_by('login',$username);
+        $this->doctype = $doctype;
+       // add sender configuration here
+        $this->phone_prefix = $this->get_user_api_config('paxxi_prefix');   // your login mobile phone prefix: 05x (Israel mobile phone only)
+        $this->phone_number = $this->get_user_api_config('paxxi_phone');   // your login mobile phone number (without prefix): xxxxxxx
+        $this->password     = $this->get_user_api_config('paxxi_password');
+
+    }
+    function get_user_api_config($key){
+        $foo = $this->user->ID;
+        return json_decode(get_user_meta($this->user->ID,'description',true))->$key ?? null;
+    }
     function get_service_name(){
         return 'Paxxi';
     }
@@ -42,7 +65,7 @@ class Paxxi extends \Priority_Hub {
         // get keys
         $keys = json_decode($this->loginToTest());
         // get prices
-        $input_array = $this->createPackageQuery();
+        $input_array = $this->createPackageQuery($order);
         $privateKey = $keys->private_key; // your private key
         ksort($input_array, SORT_STRING);
         $jsonInput = json_encode($input_array, JSON_UNESCAPED_UNICODE);
@@ -67,8 +90,9 @@ class Paxxi extends \Priority_Hub {
         ];
         return wp_remote_post($url, $data, [], true);
     }
-    function createPackageQuery()
+    function createPackageQuery($order)
     {
+        // receiver name is static per Priority server.
         return $orderData = [
             'is_api'   => '1',
             'packages' => [
@@ -84,24 +108,21 @@ class Paxxi extends \Priority_Hub {
                         'notes'        => 'הערות שולח'
                     ],
                     'receiver'  => [
-                        'name'         => 'שם המקבל',
-                        'phone_prefix' => '050',
-                        'phone_number' => '0000002',
-                        'city_code'    => '5000',
-                        'street_code'  => '1514',
-                        'house'        => '2',
-                        'notes'        => 'הערות מקבל'
+                        'name'         => $order->SHIPTO2_SUBFORM->CUSTDES,
+                        'phone_prefix' => substr($order->SHIPTO2_SUBFORM->PHONENUM,0,3),
+                        'phone_number' => substr($order->SHIPTO2_SUBFORM->PHONENUM,3,7),
+                        'city_code'    => $order->city_code,
+                        'street_code'  => $order->street_code,
+                        'house'        => $order->SHIPTO2_SUBFORM->ADDRESS2,
+                        'notes'        => $order->SHIPTO2_SUBFORM->ADDRESS3
                     ],
                     'notes' => 'הערות כלליות',
                     'insurance_id' => '6',
                     'type_id' => '1',
                     'urgency_id' => '3'
                 ],
-                'reference_number' => '123qasd123'
+                'reference_number' => $order->ORDNAME
             ]
         ];
     }
-
-
-
 }

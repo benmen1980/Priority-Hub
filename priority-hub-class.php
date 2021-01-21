@@ -135,6 +135,9 @@ class Priority_Hub
             'message' => ($response_message ? $response_message : $response->get_error_message())
         ];
     }
+    function get_user_api_config($key){
+        return json_decode(get_user_meta($this->get_user()->ID,'description',true))->$key ?? null;
+    }
     public function sendEmailError($subject = '', $error = '')
     {
         $user =  $this->get_user();
