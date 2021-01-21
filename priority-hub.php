@@ -14,7 +14,7 @@
 * Licence: GPLv2
 * Text Domain: p18a
 * Domain Path: languages
-*
+* GitHub Plugin URI: https://github.com/benmen1980/Priority-Hub.git
 */
 
 
