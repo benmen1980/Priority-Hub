@@ -217,16 +217,24 @@ $data['ORDERITEMS_SUBFORM'][] = [
 ];
 }
 // get discounts as items
-    $data['ORDERITEMS_SUBFORM'][] = $this->get_payment_details($order);
+    //$discount =  $order->total_discount_set->presentment_money;
+    $discount_partname = '000';
+    $discount_codes = $order->discount_codes;
+    foreach ( $discount_codes as $discount_line) {
+        $data['ORDERITEMS_SUBFORM'][] = $this->get_discounts($order);
+    }
+
 // shipping rate
-$shipping = $order->total_shipping_price_set->presentment_money;
-$data['ORDERITEMS_SUBFORM'][] = [
-// 'PARTNAME' => $this->option('shipping_' . $shipping_method_id, $order->get_shipping_method()),
-'PARTNAME' => '000',
-'PDES'     => '',
-'TQUANT'   => (int)1,
-'VATPRICE' => (float)$shipping->amount
-];
+
+    $shipping = $order->total_shipping_price_set->presentment_money;
+    if($shipping->amount>0){
+        $data['ORDERITEMS_SUBFORM'][] = [
+            'PARTNAME' => '000',
+            'PDES'     => '',
+            'TQUANT'   => (int)1,
+            'TOTPRICE' => (float)$shipping->amount
+        ];
+    }
 $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
 // make request
 //echo json_encode($data);

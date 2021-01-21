@@ -28,7 +28,7 @@ class Paxxi extends \Priority_Hub {
     }
     function get_order_from_priority(){
         $url_addition = '?$top=1&$filter=ORDNAME eq \'SO21000028\'&$select=ORDNAME,CURDATE&$expand=SHIPTO2_SUBFORM';
-        $response = $this->makeRequest( 'GET', 'ORDERS'.$url_addition, [ ],$this->get_user());
+        $response = $this->makeRequest( 'GET', 'ORDERS'.$url_addition, [ ],$this->user);
         if($response['code']<=201){
             $data = json_decode($response['body']);
             foreach($data->value as $order){
@@ -64,6 +64,7 @@ class Paxxi extends \Priority_Hub {
     function get_tracking_number($order){
         // get keys
         $keys = json_decode($this->loginToTest());
+
         // get prices
         $input_array = $this->createPackageQuery($order);
         $privateKey = $keys->private_key; // your private key
@@ -75,7 +76,7 @@ class Paxxi extends \Priority_Hub {
             "X-Authorization: $keys->public_key",
             "X-Authorization-Hash: $hash"
         ];
-        $result = wp_remote_request($createPackageUrl, $input_array, $additional_headers, true);
+        $result = $this->sendCurl($createPackageUrl, $input_array, $additional_headers, true);
         // get json result with package and order details
         die($result);
     }
@@ -88,7 +89,7 @@ class Paxxi extends \Priority_Hub {
             'password'     => '123qwe',
             'is_api'       => '1'
         ];
-        return wp_remote_post($url, $data, [], true);
+        return $this->sendCurl($url, $data, [], true);
     }
     function createPackageQuery($order)
     {
@@ -124,5 +125,25 @@ class Paxxi extends \Priority_Hub {
                 'reference_number' => $order->ORDNAME
             ]
         ];
+    }
+    function sendCurl($url, $data, $additional_headers = [], $httpQuery = false)
+    {
+
+        if ($httpQuery) {
+            $data = http_build_query($data);
+        }
+
+        $headers = ['X-Requested-With: XMLHttpRequest'];
+        $headers = array_merge($headers, $additional_headers);
+
+        $curl = curl_init($url);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+        $result = curl_exec($curl);
+        curl_close($curl);
+
+        return $result;
     }
 }
