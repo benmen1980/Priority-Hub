@@ -51,7 +51,7 @@ add_action('init', function(){
         wp_enqueue_script('p18a-admin-js', PHUB_ASSET_URL . 'admin.js', ['jquery']);
         wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
     });
-    $services = ['Shopify','Konimbo'];
+    $services = ['Shopify','Konimbo','Paxxi'];
     restart_Services($services);
 	});
 function add_menu_items(){
