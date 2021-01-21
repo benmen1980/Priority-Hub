@@ -72,7 +72,7 @@ class Service
     public $service;
     public function __construct($service){
         $this->service = $service;
-        $this->register_custom_post_type('Order');
+      //  $this->register_custom_post_type('Order');
         $this->register_custom_post_type('otc');
         $this->register_custom_post_type('Invoice');
         $this->register_custom_post_type('Receipt');
