@@ -212,15 +212,21 @@ class Konimbo extends \Priority_Hub {
             $data = json_decode($response['body']);
             foreach($data as $item){
                 $pri_data = [
-                'PARTNAME' => $item->code,
+                'PARTNAME'    => $item->code,
                 'PARTDES'     => $item->title,
+                'VATPRICE'    => (float)$item->price
                 ];
                 $pri_response = $this->makeRequest('POST','LOGPART',[ 'body' => json_encode( $pri_data ) ],$this->get_user());
                 if($pri_response['code']>201){
-                    $message['message'] = 'Error code: '.$pri_response['code'].' Message: '.$pri_response['message'];
-                    $subject = 'Konimbo Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
-                    $this->sendEmailError($subject,$message['message']);
-                    break;
+                    if($pri_response['code'] == 409){
+                        $message['message'] .= 'Product '.$item->code.' already exists in Priority<br>';
+                    }
+                    if($pri_response['code'] != 409){
+                        $message['message'] = 'Error code: '.$pri_response['code'].' Message: '.$pri_response['message'];
+                        $subject = 'Konimbo Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
+                        $this->sendEmailError($subject,$message['message']);
+                        break;
+                    }
                 }else{
                     $message['message'] .= 'Product '.$item->code.' posted to Priority<br>';
                     // use WEBSDK to upload the images

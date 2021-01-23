@@ -169,10 +169,16 @@ class Service
         $class_service = new $class_name('sync_inventory_to_Shopify',$username);
         $class_service->set_inventory_level_to_user();
     }
+    function execute_cron_action_products_to_priority($username){
+        $class_name = $this->service;
+        $class_service = new $class_name('sync_inventory_to_Shopify',$username);
+        $class_service->post_items_to_priority();
+    }
     function register_cron_action(){
         // cron
         add_action(strtolower($this->service).'_action',array($this,'execute_cron_action'),1,3);
         add_action(strtolower($this->service).'_action_inv',array($this,'execute_cron_action_inv'),1,3);
+        add_action(strtolower($this->service).'_action_products_to_priority',array($this,'execute_cron_action_products_to_priority'),1,3);
     }
 }
 
