@@ -8,7 +8,7 @@
 * Plugin Name: Priority Hub
 * Plugin URI: http://www.simplyCT.co.il
 * Description: Priority hub connnects any platform to Priority ERP
-* Version: 1.05
+* Version: 1.06
 * Author: SimplyCT
 * Author URI: http://simplyCT.co.il
 * Licence: GPLv2
@@ -18,7 +18,7 @@
 */
 
 
-define('PHUB_VERSION'       , '1.05');
+define('PHUB_VERSION'       , '1.06');
 define('PHUB_SELF'          , __FILE__);
 define('PHUB_URI'           , plugin_dir_url(__FILE__));
 define('PHUB_DIR'           , plugin_dir_path(__FILE__));
