@@ -78,6 +78,18 @@ class Priority_Hub
     {
         return get_option(static::$prefix . $option, $default);
     }
+    public function write_custom_log($log_msg,$user)
+    {
+        $log_filename = PHUB_DIR."log\\".$user;
+        if (!file_exists($log_filename))
+        {
+            // create directory/folder uploads.
+            mkdir($log_filename, 0777, true);
+        }
+        $log_file_data = $log_filename.'/' . date('d-M-Y') . '.log';
+        // if you don't add `FILE_APPEND`, the file will be erased each time you add a log
+        file_put_contents($log_file_data, date('H:i:s').' '.$log_msg . "\n", FILE_APPEND);
+    }
     // decode unicode hebrew text
     public function decodeHebrew($string)
     {
