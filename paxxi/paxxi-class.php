@@ -3,11 +3,9 @@ class Paxxi extends \Priority_Hub {
     private $service;
     private $doctype;
     private $user;
-    //
     private $phone_prefix;
     private $phone_number;
     private $password;
-
     public function __construct($doctype,$username)
     {
         $this->service = $this->get_service_name();
@@ -29,18 +27,50 @@ class Paxxi extends \Priority_Hub {
     function get_order_from_priority(){
         $url_addition = '?$top=1&$filter=ORDNAME eq \'SO21000028\'&$select=ORDNAME,CURDATE&$expand=SHIPTO2_SUBFORM';
         $response = $this->makeRequest( 'GET', 'ORDERS'.$url_addition, [ ],$this->user);
+        $paxxi_orders = [];
         if($response['code']<=201){
             $data = json_decode($response['body']);
+
             foreach($data->value as $order){
                 $order = $this->check_address($order);
-                if($order->is_valid_address){
-                    $res = $this->get_tracking_number($order);
+                if($order->paxxi_is_valid_address){
+                    $res =json_decode($this->get_tracking_number($order));
+                    $order->paxxi =  new \stdClass();
+                    if(!empty($res->packages)){
+                       $order->paxxi->id = $res->packages[0]->id;
+                       $order->paxxi->order_id = $res->packages[0]->order_id;
+                       $order->paxxi->tracking_id = $res->packages[0]->tracking_id;
+                       $order->paxxi->status_name = $res->packages[0]->status->name;
+                       $order->paxxi->display_name = $res->packages[0]->status->display_name;
+                       $order->paxxi->description = $display_name = $res->packages[0]->status->description;
+                       $paxxi_orders[] = $order;
+                    }elseif(isset($res->errors)){
+                        // do something when there's an error
+                        $this->sendEmailError('Paxxi error',$res->message);
+                        $order->paxxi->error = $res->message;
+                        $paxxi_orders[] = $order;
+                    }
+                }else{
+                    $order->paxxi_is_valid_address = false;
                 }
             }
+        }else{
+            $paxxi_orders = [$response];
+        }
+        return $paxxi_orders;
+    }
+    function update_priority_order($order){
+        $url_addition = 'ORDERS(\''.$order->ORDNAME.'\')';
+        $data = [
+                'DETAILS' => $order->paxxi->tracking_id
+            ];
+        $res = $this->makeRequest('PATCH',$url_addition,[ 'body' => json_encode( $data ) ],$this->user);
+        if($res['code']<=201){
+            // Success
         }
     }
     function check_address($order){
-        $order->is_valid_address = false;
+        $order->paxxi_is_valid_address = false;
         $base_url = 'https://paxxi.net/autocomplete/full_search?q=';
         $pri_city = $order->SHIPTO2_SUBFORM->STATE;
         $pri_street = $order->SHIPTO2_SUBFORM->ADDRESS;
@@ -56,7 +86,7 @@ class Paxxi extends \Priority_Hub {
                $city_code = $codes->city_code;
            }
        }
-       $order->is_valid_address = true;
+       $order->paxxi_is_valid_address = true;
        $order->city_code = $city_code;
        $order->street_code = $street_code;
        return $order;
@@ -67,9 +97,10 @@ class Paxxi extends \Priority_Hub {
 
         // get prices
         $input_array = $this->createPackageQuery($order);
+        //$input_array = json_decode('{"is_api":"1","packages":[{"insurance_id":"6","overnight":"1","receiver":{"city_code":"5000","house":"5","name":"elena","phone_number":"2580645","phone_prefix":"052","street_code":"2173"},"sender":{"city_code":"8300","house":"36","name":"אגן","phone_number":"6508854","phone_prefix":"050","street_code":"903"},"type_id":"3","urgency_id":"3"}]}',true);
         $privateKey = $keys->private_key; // your private key
         ksort($input_array, SORT_STRING);
-        $jsonInput = json_encode($input_array, JSON_UNESCAPED_UNICODE);
+        $jsonInput =json_encode($input_array, JSON_UNESCAPED_UNICODE);
         $hash = hash_hmac('sha256', $jsonInput, $privateKey);
         $createPackageUrl = 'https://paxxi.info/api/v3/customer/packages';
         $additional_headers = [
@@ -78,7 +109,7 @@ class Paxxi extends \Priority_Hub {
         ];
         $result = $this->sendCurl($createPackageUrl, $input_array, $additional_headers, true);
         // get json result with package and order details
-        die($result);
+        return $result;
     }
     function loginToTest()
     {
@@ -98,31 +129,31 @@ class Paxxi extends \Priority_Hub {
             'is_api'   => '1',
             'packages' => [
                 [
-                    'overnight' => '1',
-                    'sender'    => [
-                        'name'         => 'שם השולח',
-                        'phone_prefix' => '050',
-                        'phone_number' => '0000001',
-                        'city_code'    => '5000',
-                        'street_code'  => '1514',
-                        'house'        => '2',
-                        'notes'        => 'הערות שולח'
-                    ],
-                    'receiver'  => [
-                        'name'         => $order->SHIPTO2_SUBFORM->CUSTDES,
-                        'phone_prefix' => substr($order->SHIPTO2_SUBFORM->PHONENUM,0,3),
-                        'phone_number' => substr($order->SHIPTO2_SUBFORM->PHONENUM,3,7),
-                        'city_code'    => $order->city_code,
-                        'street_code'  => $order->street_code,
-                        'house'        => $order->SHIPTO2_SUBFORM->ADDRESS2,
-                        'notes'        => $order->SHIPTO2_SUBFORM->ADDRESS3
-                    ],
-                    'notes' => 'הערות כלליות',
                     'insurance_id' => '6',
+                    'overnight' => '1',
+                    'receiver'    => [
+                        'city_code'    => (string)$order->city_code,
+                        'house'        => '2',
+                        'name'         => 'name',
+                        'phone_number' => substr($order->SHIPTO2_SUBFORM->PHONENUM,3,7),
+                        'phone_prefix' => substr($order->SHIPTO2_SUBFORM->PHONENUM,0,3),
+                        'street_code'  => (string)$order->street_code
+                    ],
+                    'sender'  => [
+                        'city_code'    => '5000',
+                        'house'        => '5',
+                        'name'         => 'test',
+                        'phone_number' => substr($order->SHIPTO2_SUBFORM->PHONENUM,3,7),
+                        'phone_prefix' => substr($order->SHIPTO2_SUBFORM->PHONENUM,0,3),
+                        'street_code'  => '903',
+                    ],
+                  //  'notes' => 'הערות כלליות',
+
                     'type_id' => '1',
-                    'urgency_id' => '3'
-                ],
-                'reference_number' => $order->ORDNAME
+                    'urgency_id' => '3',
+                    'reference_number' => $order->ORDNAME
+                ]
+                //'reference_number' => $order->ORDNAME
             ]
         ];
     }
