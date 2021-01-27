@@ -25,7 +25,9 @@ class Paxxi extends \Priority_Hub {
         return 'Paxxi';
     }
     function get_order_from_priority(){
-        $url_addition = '?$top=1&$filter=ORDNAME eq \'SO21000028\'&$select=ORDNAME,CURDATE&$expand=SHIPTO2_SUBFORM';
+        $stamp = mktime(0 , 0, 0);
+        $bod = date(DATE_ATOM,$stamp);
+        $url_addition = '?$filter=CURDATE eq '.urlencode($bod).'&$select=ORDNAME,CURDATE&$expand=SHIPTO2_SUBFORM';
         $response = $this->makeRequest( 'GET', 'ORDERS'.$url_addition, [ ],$this->user);
         $paxxi_orders = [];
         if($response['code']<=201){
@@ -33,9 +35,9 @@ class Paxxi extends \Priority_Hub {
 
             foreach($data->value as $order){
                 $order = $this->check_address($order);
+                $order->paxxi =  new \stdClass();
                 if($order->paxxi_is_valid_address){
                     $res =json_decode($this->get_tracking_number($order));
-                    $order->paxxi =  new \stdClass();
                     if(!empty($res->packages)){
                        $order->paxxi->id = $res->packages[0]->id;
                        $order->paxxi->order_id = $res->packages[0]->order_id;
@@ -51,7 +53,8 @@ class Paxxi extends \Priority_Hub {
                         $paxxi_orders[] = $order;
                     }
                 }else{
-                    $order->paxxi_is_valid_address = false;
+                    $order->paxxi->error = 'Address not found';
+                    $paxxi_orders[] = $order;
                 }
             }
         }else{
@@ -75,7 +78,7 @@ class Paxxi extends \Priority_Hub {
         $bod = date(DATE_ATOM,$stamp);
         $data = [
             'CURDATE' => $bod,
-            'SUBJECT' => 'paxxi : '.$order->paxxi->display_name.', '.$order->paxxi->description
+            'SUBJECT' => 'paxxi : '. ($order->paxxi_is_valid_address  ? $order->paxxi->display_name.', '.$order->paxxi->description : $order->paxxi->error)
             ];
         $res = $this->makeRequest('POST',$url_addition,[ 'body' => json_encode( $data ) ],$this->user);
         if($res['code']<=201){
@@ -99,11 +102,12 @@ class Paxxi extends \Priority_Hub {
                $codes = $addresses->full_search[0];
                $street_code = $codes->street_code;
                $city_code = $codes->city_code;
+               $order->paxxi_is_valid_address = true;
+               $order->city_code = $city_code;
+               $order->street_code = $street_code;
            }
        }
-       $order->paxxi_is_valid_address = true;
-       $order->city_code = $city_code;
-       $order->street_code = $street_code;
+
        return $order;
     }
     function get_tracking_number($order){
