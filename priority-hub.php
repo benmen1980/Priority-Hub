@@ -72,19 +72,21 @@ class Service
     public $service;
     public function __construct($service){
         $this->service = $service;
+
+        add_action('add_meta_boxes', array($this, 'custom_post_data_form_meta_box'));
+        $this->register_cron_action();
+        // menu
         add_action('admin_menu',function() {
+            $this->register_custom_post_type('Order');
+            $this->register_custom_post_type('otc');
+            $this->register_custom_post_type('Invoice');
+            $this->register_custom_post_type('Receipt');
+            $this->register_custom_post_type('Shipment');
             add_menu_page(null, $this->service . ' logs', 'manage_options', strtolower($this->service),
                 function () {
                 }, 'dashicons-tickets', 50);
-        });
 
-        $this->register_custom_post_type('Order');
-        $this->register_custom_post_type('otc');
-        $this->register_custom_post_type('Invoice');
-        $this->register_custom_post_type('Receipt');
-        $this->register_custom_post_type('Shipment');
-        add_action('add_meta_boxes', array($this, 'custom_post_data_form_meta_box'));
-        $this->register_cron_action();
+        });
 
     }
     public function register_custom_post_type($document)
@@ -137,11 +139,12 @@ class Service
             'publicly_queryable' => true,
             'capability_type' => 'post',
         );
-        $post_type = strtolower($this->service.'_'.$document);
+        $post_type = strtolower($this->service . '_' . $document);
         register_post_type($this->service . '_' . $document, $args);
-        //$this->custom_post_data_form_meta_box($document);
-        add_submenu_page(strtolower($this->service),$this->service . '_' . $document,$this->service.' '.$document,'manage_options','edit.php?post_type='.$post_type);
+        add_submenu_page(strtolower($this->service), $this->service . '_' . $document, $this->service . ' ' . $document, 'manage_options', 'edit.php?post_type=' . $post_type);
+
     }
+
     public function custom_post_data_form_meta_box()
     {
         // order
