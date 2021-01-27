@@ -67,6 +67,21 @@ class Paxxi extends \Priority_Hub {
         $res = $this->makeRequest('PATCH',$url_addition,[ 'body' => json_encode( $data ) ],$this->user);
         if($res['code']<=201){
             // Success
+        }else{
+            // error updating Priority ...
+        }
+        $url_addition = 'ORDERS(\''.$order->ORDNAME.'\')/GENCUSTNOTES_SUBFORM';
+        $stamp = mktime(0 , 0, 0);
+        $bod = date(DATE_ATOM,$stamp);
+        $data = [
+            'CURDATE' => $bod,
+            'SUBJECT' => 'paxxi : '.$order->paxxi->display_name.', '.$order->paxxi->description
+            ];
+        $res = $this->makeRequest('POST',$url_addition,[ 'body' => json_encode( $data ) ],$this->user);
+        if($res['code']<=201){
+            // Success
+        }else{
+            // error updating Priority ...
         }
     }
     function check_address($order){
