@@ -72,7 +72,13 @@ class Service
     public $service;
     public function __construct($service){
         $this->service = $service;
-      //  $this->register_custom_post_type('Order');
+        add_action('admin_menu',function() {
+            add_menu_page(null, $this->service . ' logs', 'manage_options', strtolower($this->service),
+                function () {
+                }, 'dashicons-tickets', 50);
+        });
+
+        $this->register_custom_post_type('Order');
         $this->register_custom_post_type('otc');
         $this->register_custom_post_type('Invoice');
         $this->register_custom_post_type('Receipt');
@@ -121,7 +127,7 @@ class Service
             'hierarchical' => false,
             'public' => true,
             'show_ui' => true,
-            'show_in_menu' => true,
+            'show_in_menu' => false,
             'menu_position' => 23,
             'show_in_admin_bar' => true,
             'show_in_nav_menus' => true,
@@ -134,6 +140,7 @@ class Service
         $post_type = strtolower($this->service.'_'.$document);
         register_post_type($this->service . '_' . $document, $args);
         //$this->custom_post_data_form_meta_box($document);
+        add_submenu_page(strtolower($this->service),$this->service . '_' . $document,$this->service.' '.$document,'manage_options','edit.php?post_type='.$post_type);
     }
     public function custom_post_data_form_meta_box()
     {
