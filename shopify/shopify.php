@@ -30,6 +30,7 @@ if ( isset( $_POST['submit'] ) && isset($_POST['shopify_username'])&& isset($_PO
             $message['message'] .= $item['sku']. ' >> '.$item['stock'].'<br>';
         }
     } else {
+    //$messages = array();
     $message = $shopify->post_user_by_username($_POST['shopify_username'], $_POST['shopify_order'], $_POST['shopify_document']);
     }
     if(isset($message['message'])) echo $message['message'];

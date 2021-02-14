@@ -40,6 +40,11 @@ function priority_hub_front_panel(){
 					<?php _e('Amazon', 'p18a'); ?>
                 </a>
             </li>
+            <li>
+                <a href="<?php echo $current_url. '/?tab=istore'; ?>" class="<?php if($tab == 'istore') echo 'active'; ?>">
+					<?php _e('istore', 'p18a'); ?>
+                </a>
+            </li>
 
         </ul>
     </div>
@@ -52,6 +57,9 @@ function priority_hub_front_panel(){
 				break;
             case 'shopify':
                 include_once (PHUB_DIR.'shopify/shopify-front.php');
+                break;
+            case 'istore':
+                include_once (PHUB_DIR.'istore/istore-front.php');
                 break;
 		}
 	}

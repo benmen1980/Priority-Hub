@@ -191,6 +191,7 @@ class Priority_Hub
             return;
         }
         foreach ($documents as $doc) {
+
             // check if receipt already been posted, and continue
             $args = array(
                 'post_type' => $this->get_post_type(),
