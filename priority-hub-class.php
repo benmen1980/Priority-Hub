@@ -39,6 +39,7 @@ class Priority_Hub
                 <select value="" name="<?php echo $this->get_service_name_lower(); ?>_document" id="<?php echo $this->get_service_name_lower(); ?>_document">
                     <option selected="selected"></option>
                     <option value="order">Order</option>
+                    <option value="receipt">Receipt</option>
                     <option value="otc">Over The counter invoice</option>
                     <option value="invoice">Sales Invoice</option>
                     <option value="shipment">Shipment</option>

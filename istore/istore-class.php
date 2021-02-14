@@ -9,20 +9,18 @@ class Istore extends \Priority_Hub {
         $last_sync_time = $this->get_last_sync_time();
         $d=strtotime("now");
         $date_now = date("Y-m-d h:i:s", $d);
+
         $order_id         = '';
 
         $istore_base_url = 'https://my.istores.co.il/gateway/orders';
-        if ( !$this->debug ) {
+
         $this->set_last_sync_time();
-        }
-        if ($this->debug) {
-            $istore_base_url = 'https://my.istores.co.il/gateway/order/'.$this->order;
-        }
+        
         $method = 'POST';
         $YOUR_TOKEN = get_user_meta( $user->ID, 'istore_token', true );
         $FROM_DATE = $last_sync_time;
         //debug
-        //$FROM_DATE = "2020-02-11T11:02:13+00:00";
+        $FROM_DATE = "2020-02-11T11:02:13+00:00";
         //$TO_DATE = "2021-02-11T11:02:13+00:00";
         $TO_DATE = $date_now;
         $LIMIT = 100;
@@ -116,7 +114,7 @@ class Istore extends \Priority_Hub {
                     $response = $this->post_shipment_to_priority($doc);
                     break;
             }
-            $responses[$doc->id] = $response;
+            $responses[$doc->order_id] = $response;
             $response_body = json_decode($response['body']);
             $error_prefix = '';
             if ($response['code'] <= 201 && $response['code'] >= 200) {
@@ -127,10 +125,10 @@ class Istore extends \Priority_Hub {
             }
             $body_array = json_decode($response["body"], true);
             // Create post object
-            $ret_doc_name = $this->doctype == 'order' ? 'ORDNAME' : 'IVNUM';
+            $ret_doc_name = $this->get_doctype() == 'order' ? 'ORDNAME' : 'IVNUM';
             $my_post = array(
                 'post_type' => $this->get_service_name().'_'.$this->get_doctype(),
-                'post_title' => $error_prefix . $doc->name . ' ' . $doc->id,
+                'post_title' => $error_prefix . $doc->name . ' ' . $doc->order_id,
                 'post_content' => json_encode($response),
                 'post_status' => 'publish',
                 'post_author' => $user->ID,
@@ -138,7 +136,7 @@ class Istore extends \Priority_Hub {
             );
             // Insert the post into the database
             $post_id = wp_insert_post($my_post);
-            update_post_meta($post_id, 'order_number', $doc->id);
+            update_post_meta($post_id, 'order_number', $doc->order_id);
             $index++;
             if ('' == $response['code']) {
                 break;
@@ -187,7 +185,7 @@ class Istore extends \Priority_Hub {
         }
     }
 
-        // return array of Priority responses by user
+    // return array of Priority responses by user
     function post_order_to_priority( $order ) {
         $order_detail = $this->get_orders_details_by_id($order);
         $user = $this->get_user();
@@ -269,6 +267,52 @@ class Istore extends \Priority_Hub {
         return $response;
     }
 
+    function post_receipt_to_priority( $order) {
+        $order_detail = $this->get_orders_details_by_id($order);
+        $user = $this->get_user();
+        $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
+        $date = $order_detail->date_added; // date_modified?
+        $createDate = new DateTime($date);
+        $stripDate = $createDate->format('Y-m-d');
+        $receipt_date =  $stripDate;
+        $data        = [
+            'ACCNAME' => $cust_number,
+            'CDES'     => $order_detail->payment_firstname. ' '.$order_detail->payment_lastname,
+            'IVDATE'   => $receipt_date,
+            'BOOKNUM'  => 'Istore-'.$order_detail->order_id,
+            'DETAILS'  => 'Istore-'.$order_detail->order_id
+        ];
+        // billing customer details
+        $customer_data                = [
+            'PHONE' => $order_detail->telephone,
+            'EMAIL' => $order_detail->email,
+            'ADRS'  => $order_detail->payment_address_1,
+        ];
+        $data['TINVOICESCONT_SUBFORM'][] = $customer_data;
+        // payment info
+
+        //The card number with mask at the middle (not full number)
+        $card_mask = (string)$order_detail->payment_data->card_mask;
+        $last_4d = substr($card_mask, -4);
+        $card_exp = (string)$order_detail->payment_data->card_exp;
+        $data['TPAYMENT2_SUBFORM'][] = [
+            'PAYMENTCODE'    => "1",
+            'PAYMENTNAME'    => $order_detail->payment_method,
+            'QPRICE'         => (float)$order_detail->total,
+            'PAYCODE'        => (string) $order_detail->payment_data->number_of_payments, //is it right?
+            //'FIRSTPAY'       => (float) $order_detail->payment_data->first_payment,
+            'PAYDATE'        =>  $stripDate,
+            'PAYACCOUNT'     => $last_4d, 
+            'VALIDMONTH'     => $card_exp, 
+            'CONFNUM'        => ($order_detail->payment_data->auth_number)? $order_detail->payment_data->auth_number: null
+            //'CARDNUM'        => $credit_cart_payments->shovar_number
+        ];
+
+        // make request
+        $response = $this->makeRequest( 'POST', 'TINVOICES', [ 'body' => json_encode( $data ) ], $user );
+        return $response;
+    }
+
     function get_payment_details($order){  //i dont know where to insert payment method and details
         // payment info
         $istore_cards_dictionary   = array(
@@ -277,15 +321,19 @@ class Istore extends \Priority_Hub {
         $order_detail = $this->get_orders_details_by_id($order);
         $payment_method =  $order_detail->payment_method;
         $payment_code               = $order_detail->payment_code; 
-        $valid_month = $order_detail->payment_data->card_exp;
-        //$account_num = $order_detail->payment_data->auth_number;  //is it right
+        $card_mask = (string)$order_detail->payment_data->card_mask;
+        $last_4d = substr($card_mask, -4);
+        $card_exp = (string)$order_detail->payment_data->card_exp;
         
         $data = [
             //'PAYMENTCODE' => $payment_code,
             //debug
             'PAYMENTCODE' => '1',  
             'PAYMENTNAME' =>  $payment_method,
-            'VALIDMONTH' =>  $valid_month,
+            'PAYACCOUNT'     => $last_4d, 
+            'VALIDMONTH'     => $card_exp, 
+            'QPRICE'         => (float)$order_detail->total,
+            'CONFNUM'        => ($order_detail->payment_data->auth_number)? $order_detail->payment_data->auth_number: null
         ];
         return $data;
     }
