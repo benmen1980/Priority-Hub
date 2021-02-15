@@ -3,6 +3,45 @@ class Istore extends \Priority_Hub {
     function get_service_name(){
         return 'Istore';
     }
+    function update_products_to_service(){
+        $user = $this->get_user();
+        $istore_base_url = 'https://my.istores.co.il/gateway/products';
+        $method = 'POST';
+        $YOUR_TOKEN = get_user_meta( $user->ID, 'istore_token', true );
+        $products = $this->get_products_from_priority();
+        foreach ($products as $product){
+            $data['model'] = $product['PARTDES'];
+            $data['sku'] = $product['PARTNAME'];
+            $data['price'] = $product['BASEPLPRICE'];
+            $data['product_description']['3'] = [
+                'name' => $product['PARTDES']
+            ];
+
+            // retrieve prioriry image path
+            $priority_image_path = $product['EXTFILENAME'];
+            $url = get_user_meta($user->ID, 'url', true);
+            $images_url = 'https://'. $url.'/primail';
+            $product_full_url = str_replace( '../../system/mail', $images_url, $priority_image_path );
+
+            $data['images'] = $product_full_url;
+            $args   = [
+                'headers' => array(
+                    'Content-Type' => 'application/json',
+                    'x-token' => $YOUR_TOKEN,
+                    'accept' => 'application/json'
+                ),
+                'timeout' => 450,
+                'method'  => strtoupper( $method ),
+                //'sslverify' => $this->option('sslverify', false)
+                'body'    => json_encode($data)
+            ];
+            if ( ! empty( $options ) ) {
+                $args = array_merge( $args, $options );
+            }
+            $responses[] = wp_remote_request( $istore_base_url, $args );
+        }
+        return $responses;
+    }
     function get_orders_by_user(  ) {
         $user = $this->get_user();
         //$last_sync_time = get_user_meta( $user->ID, 'istore_last_sync_time_order', true );
@@ -20,7 +59,7 @@ class Istore extends \Priority_Hub {
         $YOUR_TOKEN = get_user_meta( $user->ID, 'istore_token', true );
         $FROM_DATE = $last_sync_time;
         //debug
-        $FROM_DATE = "2020-02-11T11:02:13+00:00";
+        //$FROM_DATE = "2020-02-11T11:02:13+00:00";
         //$TO_DATE = "2021-02-11T11:02:13+00:00";
         $TO_DATE = $date_now;
         $LIMIT = 100;
@@ -109,6 +148,9 @@ class Istore extends \Priority_Hub {
                     break;
                 case 'receipt':
                     $response = $this->post_receipt_to_priority($doc);
+                    break;
+                case 'orderreceipt':
+                    $response = $this->post_order_and_receipt_to_priority($doc);
                     break;
                 case 'shipment':
                     $response = $this->post_shipment_to_priority($doc);
@@ -295,8 +337,9 @@ class Istore extends \Priority_Hub {
         $card_mask = (string)$order_detail->payment_data->card_mask;
         $last_4d = substr($card_mask, -4);
         $card_exp = (string)$order_detail->payment_data->card_exp;
+        $payment_code = $this->get_user_api_config('ISTORE_PAYMENTCODE'); 
         $data['TPAYMENT2_SUBFORM'][] = [
-            'PAYMENTCODE'    => "1",
+            'PAYMENTCODE'    => $payment_code,
             'PAYMENTNAME'    => $order_detail->payment_method,
             'QPRICE'         => (float)$order_detail->total,
             'PAYCODE'        => (string) $order_detail->payment_data->number_of_payments, //is it right?
@@ -313,6 +356,9 @@ class Istore extends \Priority_Hub {
         return $response;
     }
 
+
+
+
     function get_payment_details($order){  //i dont know where to insert payment method and details
         // payment info
         $istore_cards_dictionary   = array(
@@ -320,7 +366,7 @@ class Istore extends \Priority_Hub {
         );
         $order_detail = $this->get_orders_details_by_id($order);
         $payment_method =  $order_detail->payment_method;
-        $payment_code               = $order_detail->payment_code; 
+        $payment_code = $this->get_user_api_config('ISTORE_PAYMENTCODE'); 
         $card_mask = (string)$order_detail->payment_data->card_mask;
         $last_4d = substr($card_mask, -4);
         $card_exp = (string)$order_detail->payment_data->card_exp;
@@ -328,7 +374,7 @@ class Istore extends \Priority_Hub {
         $data = [
             //'PAYMENTCODE' => $payment_code,
             //debug
-            'PAYMENTCODE' => '1',  
+            'PAYMENTCODE' => $payment_code,  
             'PAYMENTNAME' =>  $payment_method,
             'PAYACCOUNT'     => $last_4d, 
             'VALIDMONTH'     => $card_exp, 
@@ -337,5 +383,10 @@ class Istore extends \Priority_Hub {
         ];
         return $data;
     }
+
+    function get_user_api_config($key){
+        return json_decode(get_user_meta($this->get_user()->ID,'description',true))->$key ?? null;
+    }
 }
+
 

@@ -160,26 +160,29 @@ class Priority_Hub
     }
     function post_user_by_username($username,$order,$document){
         $user = get_user_by('login',$username);
+        $service_name = $this->get_service_name();
         $this->document = $document;
         $this->order = $order;
         $this->debug = null != $order;
         $this->generalpart = '';
         // process
-        if('sync_products_to_shopify' == $this->get_doctype()){
+        if( $document == 'sync_products_to_'.$service_name){
             $products = $this->update_products_to_service();
-            $message['message'] = 'Update Products to Shopify Done!';
+            $message['message'] = 'Update Products to '.$service_name.' Done!';
             return $message;
         }
-        $orders = $this->get_orders_by_user();
-        $responses[$user->ID] = $this->process_documents($orders);
-        $messages =  $this->processResponse($responses);
-        $message = $messages[$user->ID];
-        $emails  = [ $user->user_email ];
-        $subject = 'Priority '.$this->service.' API error ';
-        if (true == $message['is_error']) {
-            $this->sendEmailError($subject, $message['message']);
+        else{
+            $orders = $this->get_orders_by_user();
+            $responses[$user->ID] = $this->process_documents($orders);
+            $messages =  $this->processResponse($responses);
+            $message = $messages[$user->ID];
+            $emails  = [ $user->user_email ];
+            $subject = 'Priority '.$this->service.' API error ';
+            if (true == $message['is_error']) {
+                $this->sendEmailError($subject, $message['message']);
+            }
+            return $message;
         }
-        return $message;
     }
     function process_documents($documents)
     {
@@ -222,6 +225,9 @@ class Priority_Hub
                     break;
                 case 'receipt':
                     $response = $this->post_receipt_to_priority($doc);
+                    break;
+                case 'orderreceipt':
+                    $response = $this->post_order_and_receipt_to_priority($doc);
                     break;
                 case 'shipment':
                     $response = $this->post_shipment_to_priority($doc);
@@ -322,6 +328,10 @@ class Priority_Hub
     }
     function post_receipt_to_priority($invoice){
         return null;
+    }
+    function post_order_and_receipt_to_priority($order){
+        $this->post_order_to_priority( $order );
+        $this->post_receipt_to_priority( $order);
     }
     function get_products_from_priority(){
         $additional_url = 'LOGPART';

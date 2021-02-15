@@ -423,7 +423,7 @@ function update_products_to_service(){
         $responses[] = wp_remote_request( $shopify_base_url, $args );
     }
     return $responses;
-    }
+}
 function get_payment_details($order){
         // payment info
         $shopify_cards_dictionary   = array(
