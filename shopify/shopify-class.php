@@ -8,11 +8,12 @@ function get_orders_by_user(  ) {
     //$last_sync_time = get_user_meta( $user->ID, 'shopify_last_sync_date', true );
     $last_sync_time = $this->get_last_sync_time();
     $order_id         = '';
-    $orders_limit  = '?created_at_min=' . $last_sync_time.'&limit=250&status=any';
+    //$orders_limit  = '?created_at_min=' . $last_sync_time.'&limit=250&status=any';
     //$orders_limit     = '?created_at_min=2020-10-01T00:00:00Z&created_at_max=2020-10-30T00:00:00Z&limit=250&status=any';
     //$orders_limit     = '?created_at_=2020-09-23T00:00:00Z&limit=250&status=any';
-    $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json'.$orders_limit;
-    if ( !$this->debug ) {
+    //$shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json'.$orders_limit;
+    $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json';
+        if ( !$this->debug ) {
         $this->set_last_sync_time();
     }
     if ($this->debug) {
@@ -430,7 +431,7 @@ function update_products_to_service(){
         $responses[] = wp_remote_request( $shopify_base_url, $args );
     }
     return $responses;
-    }
+}
 function get_payment_details($order){
         // payment info
         $shopify_cards_dictionary   = array(
@@ -523,7 +524,7 @@ function set_inventory_level_to_location($location_id,$partname){
     }
 return $updated_items;
 }
-function set_inventory_level_to_user(){
+function set_inventory_level_to_user($username){
     $location_id = $this->get_user_api_config('LOCATION_ID');
     $updated_items = $this->set_inventory_level_to_location($location_id,null);
     error_log('Sync inventory to shopify '.print_r($updated_items));

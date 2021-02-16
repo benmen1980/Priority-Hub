@@ -8,7 +8,9 @@
 * Plugin Name: Priority Hub
 * Plugin URI: http://www.simplyCT.co.il
 * Description: Priority hub connnects any platform to Priority ERP
-* Version: 1.06
+
+* Version: 1.07
+
 * Author: SimplyCT
 * Author URI: http://simplyCT.co.il
 * Licence: GPLv2
@@ -18,7 +20,9 @@
 */
 
 
-define('PHUB_VERSION'       , '1.06');
+
+define('PHUB_VERSION'       , '1.07');
+
 define('PHUB_SELF'          , __FILE__);
 define('PHUB_URI'           , plugin_dir_url(__FILE__));
 define('PHUB_DIR'           , plugin_dir_path(__FILE__));
@@ -37,6 +41,7 @@ add_action('init', function(){
     include_once (PHUB_INCLUDES_DIR.'front-panel.php');
     include_once (PHUB_DIR.'konimbo/konimbo-class.php');
     include_once (PHUB_DIR.'shopify/shopify-class.php');
+    include_once (PHUB_DIR.'istore/istore-class.php');
     add_action( 'admin_menu','add_menu_items');
     add_action('admin_init', function () {
         wp_localize_script('p18a-admin-js', 'P18A', [
@@ -51,7 +56,9 @@ add_action('init', function(){
         wp_enqueue_script('p18a-admin-js', PHUB_ASSET_URL . 'admin.js', ['jquery']);
         wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
     });
-    $services = ['Shopify','Konimbo','Paxxi'];
+
+    $services = ['Shopify','Konimbo','Istore','Paxxi'];
+
     restart_Services($services);
 	});
 function add_menu_items(){
@@ -63,7 +70,8 @@ function hub_options() {
 }
 function restart_Services($services){
     foreach ($services as $service){
-        $service_shopify = new Service($service);
+        //$service_shopify = new Service($service);
+        $service = new Service($service);
     }
 }
 // new post type

@@ -622,7 +622,7 @@ if( function_exists('acf_add_local_field_group') ):
             array(
                 'key' => 'field_5f73b8224caf0',
                 'label' => 'Order Last Sync time',
-                'name' => 'istore_order_last_sync_time',
+                'name' => 'istore_last_sync_time_order',
                 'type' => 'date_time_picker',
                 'instructions' => '',
                 'required' => 0,
@@ -644,6 +644,103 @@ if( function_exists('acf_add_local_field_group') ):
                 'return_format' => 'd/m/Y g:i a',
                 'first_day' => 1,
             ),
+            // array(
+            //     'key' => 'field_602442ab4a081',
+            //     'label' => 'Order From Date',
+            //     'name' => 'istore_orders_from_date',
+            //     'type' => 'date_time_picker',
+            //     'instructions' => '',
+            //     'required' => 1,
+            //     'conditional_logic' => array(
+            //         array(
+            //             array(
+            //                 'field' => 'field_5f73b72858c73',
+            //                 'operator' => '==',
+            //                 'value' => '1',
+            //             ),
+            //         ),
+            //     ),
+            //     'wrapper' => array(
+            //         'width' => '',
+            //         'class' => '',
+            //         'id' => '',
+            //     ),
+            //     'display_format' => 'd/m/Y g:i a',
+            //     'return_format' => 'd/m/Y g:i a',
+            //     'first_day' => 1,
+            // ),
+            // array(
+            //     'key' => 'field_602442ab4a091',
+            //     'label' => 'Order To Date',
+            //     'name' => 'istore_orders_to_date',
+            //     'type' => 'date_time_picker',
+            //     'instructions' => '',
+            //     'required' => 1,
+            //     'conditional_logic' => array(
+            //         array(
+            //             array(
+            //                 'field' => 'field_5f73b72858c73',
+            //                 'operator' => '==',
+            //                 'value' => '1',
+            //             ),
+            //         ),
+            //     ),
+            //     'wrapper' => array(
+            //         'width' => '',
+            //         'class' => '',
+            //         'id' => '',
+            //     ),
+            //     'display_format' => 'd/m/Y g:i a',
+            //     'return_format' => 'd/m/Y g:i a',
+            //     'first_day' => 1,
+            // ),
+            // array(
+            //     'key' => 'field_602442ab4a093',
+            //     'label' => 'Limit Order Per Page',
+            //     'name' => 'istore_limit_order_per_page',
+            //     'type' => 'number',
+            //     'instructions' => '',
+            //     'required' => 0,
+            //     'conditional_logic' => array(
+            //         array(
+            //             array(
+            //                 'field' => 'field_5f73b72858c73',
+            //                 'operator' => '==',
+            //                 'value' => '1',
+            //             ),
+            //         ),
+            //     ),
+            //     'wrapper' => array(
+            //         'width' => '',
+            //         'class' => '',
+            //         'id' => '',
+            //     ),
+            //     'min' => 1,
+			//     'max' => 100,
+            // ),
+            // array(
+            //     'key' => 'field_602442ab4a094',
+            //     'label' => 'Page',
+            //     'name' => 'istore_page',
+            //     'type' => 'number',
+            //     'instructions' => '',
+            //     'required' => 0,
+            //     'conditional_logic' => array(
+            //         array(
+            //             array(
+            //                 'field' => 'field_5f73b72858c73',
+            //                 'operator' => '==',
+            //                 'value' => '1',
+            //             ),
+            //         ),
+            //     ),
+            //     'wrapper' => array(
+            //         'width' => '',
+            //         'class' => '',
+            //         'id' => '',
+            //     ),
+            //     'min' => 0,
+            // ),
         ),
         'location' => array(
             array(
