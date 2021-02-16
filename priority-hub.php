@@ -8,17 +8,21 @@
 * Plugin Name: Priority Hub
 * Plugin URI: http://www.simplyCT.co.il
 * Description: Priority hub connnects any platform to Priority ERP
+
 * Version: 1.07
+
 * Author: SimplyCT
 * Author URI: http://simplyCT.co.il
 * Licence: GPLv2
 * Text Domain: p18a
 * Domain Path: languages
-*
+* GitHub Plugin URI: https://github.com/benmen1980/Priority-Hub.git
 */
 
 
+
 define('PHUB_VERSION'       , '1.07');
+
 define('PHUB_SELF'          , __FILE__);
 define('PHUB_URI'           , plugin_dir_url(__FILE__));
 define('PHUB_DIR'           , plugin_dir_path(__FILE__));
@@ -52,7 +56,9 @@ add_action('init', function(){
         wp_enqueue_script('p18a-admin-js', PHUB_ASSET_URL . 'admin.js', ['jquery']);
         wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
     });
-    $services = ['Shopify','Konimbo','Istore'];
+
+    $services = ['Shopify','Konimbo','Istore','Paxxi'];
+
     restart_Services($services);
 	});
 function add_menu_items(){
@@ -74,13 +80,21 @@ class Service
     public $service;
     public function __construct($service){
         $this->service = $service;
-        $this->register_custom_post_type('Order');
-        $this->register_custom_post_type('otc');
-        $this->register_custom_post_type('Invoice');
-        $this->register_custom_post_type('Receipt');
-        $this->register_custom_post_type('Shipment');
+
         add_action('add_meta_boxes', array($this, 'custom_post_data_form_meta_box'));
         $this->register_cron_action();
+        // menu
+        add_action('admin_menu',function() {
+            $this->register_custom_post_type('Order');
+            $this->register_custom_post_type('otc');
+            $this->register_custom_post_type('Invoice');
+            $this->register_custom_post_type('Receipt');
+            $this->register_custom_post_type('Shipment');
+            add_menu_page(null, $this->service . ' logs', 'manage_options', strtolower($this->service),
+                function () {
+                }, 'dashicons-tickets', 50);
+
+        });
 
     }
     public function register_custom_post_type($document)
@@ -123,7 +137,7 @@ class Service
             'hierarchical' => false,
             'public' => true,
             'show_ui' => true,
-            'show_in_menu' => true,
+            'show_in_menu' => false,
             'menu_position' => 23,
             'show_in_admin_bar' => true,
             'show_in_nav_menus' => true,
@@ -133,10 +147,12 @@ class Service
             'publicly_queryable' => true,
             'capability_type' => 'post',
         );
-        $post_type = strtolower($this->service.'_'.$document);
+        $post_type = strtolower($this->service . '_' . $document);
         register_post_type($this->service . '_' . $document, $args);
-        //$this->custom_post_data_form_meta_box($document);
+        add_submenu_page(strtolower($this->service), $this->service . '_' . $document, $this->service . ' ' . $document, 'manage_options', 'edit.php?post_type=' . $post_type);
+
     }
+
     public function custom_post_data_form_meta_box()
     {
         // order
@@ -166,14 +182,21 @@ class Service
         $class_service->post_user_by_username($username,null,$doctype);
     }
     function execute_cron_action_inv($username){
+        error_log('call from inv cron');
         $class_name = $this->service;
         $class_service = new $class_name('sync_inventory_to_Shopify',$username);
-        $class_service->post_user_by_username();
+        $class_service->set_inventory_level_to_user();
+    }
+    function execute_cron_action_products_to_priority($username){
+        $class_name = $this->service;
+        $class_service = new $class_name('sync_inventory_to_Shopify',$username);
+        $class_service->post_items_to_priority();
     }
     function register_cron_action(){
         // cron
         add_action(strtolower($this->service).'_action',array($this,'execute_cron_action'),1,3);
         add_action(strtolower($this->service).'_action_inv',array($this,'execute_cron_action_inv'),1,3);
+        add_action(strtolower($this->service).'_action_products_to_priority',array($this,'execute_cron_action_products_to_priority'),1,3);
     }
 }
 
