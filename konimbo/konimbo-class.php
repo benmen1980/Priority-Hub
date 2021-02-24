@@ -195,6 +195,67 @@ class Konimbo extends \Priority_Hub {
 
 		return $response;
 	}
+	function post_items_to_priority(){
+        $message['message'] = 'Nothnig happen yet...';
+        // get the token
+        $productToken = 'f0a511b7aec60c6629cd6749502e5c6e08d468df818bcf368f2016e17e57e183';
+        // get last sync time or days back
+        $lastDateFilter = '&created_at_min=2021-01-22T09:00:00Z';
+        // get products
+        $fields = '&attributes=id,price,code,title,desc,images';
+        $baseUrl =  'https://api.konimbo.co.il/v1/items?token=';
+        $url = $baseUrl.$productToken.$fields.$lastDateFilter;
+        // send to Priority
+        $response = wp_remote_get($url);
+        if($response['response']['code']<=201){
+            $message['message'] = 'Starting process products...<br>';
+            $data = json_decode($response['body']);
+            foreach($data as $item){
+                $pri_data = [
+                'PARTNAME'    => $item->code,
+                'PARTDES'     => $item->title,
+                'VATPRICE'    => (float)$item->price
+                ];
+                $pri_response = $this->makeRequest('POST','LOGPART',[ 'body' => json_encode( $pri_data ) ],$this->get_user());
+                if($pri_response['code']>201){
+                    if($pri_response['code'] == 409){
+                        $msg = 'Product '.$item->code.' already exists in Priority<br>';
+                        $this->write_custom_log($msg,$this->get_user()->user_login);
+                        $message['message'] .= $msg;
+                    }
+                    if($pri_response['code'] != 409){
+                        $message['message'] = 'Error code: '.$pri_response['code'].' Message: '.$pri_response['message'];
+                        $msg = 'Konimbo Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
+                        $this->write_custom_log($msg,$this->get_user()->username);
+                        $subject = $msg;
+                        $this->sendEmailError($subject,$message['message']);
+                        break;
+                    }
+
+                }else{
+                    $message['message'] .= 'Product '.$item->code.' posted to Priority<br>';
+                    // use WEBSDK to upload the images
+                    $imgIndex = 1;
+                    foreach($item->images as $image){
+                        if($imgIndex == 1){
+                            // upload main image
+                        }else{
+                            // upload sub form images
+                        }
+                        $imgIndex++;
+                    }
+                }
+
+            }
+        }else{
+            $subject = 'Konimbo Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
+            $this->sendEmailError($subject,'');
+            $message['message'] =  'We got error here... '.$response['body'];
+        }
+        // upload image
+        // process response
+        return $message;
+    }
     function post_receipt_to_priority( $order) {
         $user = $this->get_user();
         $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );

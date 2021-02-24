@@ -45,6 +45,7 @@ class Priority_Hub
                     <option value="shipment">Shipment</option>
                     <option value="orderreceipt">Order + Receipt</option>
                     <option value="sync_products_to_<?php echo $this->get_service_name(); ?>">Sync products to <?php echo $this->get_service_name(); ?></option>
+                    <option value="sync_products_from_<?php echo $this->get_service_name(); ?>">Sync products from <?php echo $this->get_service_name(); ?></option>
                     <option value="sync_inventory_to_<?php echo $this->get_service_name(); ?>">Sync Inventory to <?php echo $this->get_service_name(); ?></option>
                 </select>
                 <label>Select Priority Entity target</label></div>
@@ -77,6 +78,18 @@ class Priority_Hub
     public function option($option, $default = false)
     {
         return get_option(static::$prefix . $option, $default);
+    }
+    public function write_custom_log($log_msg,$user)
+    {
+        $log_filename = PHUB_DIR."log\\".$user;
+        if (!file_exists($log_filename))
+        {
+            // create directory/folder uploads.
+            mkdir($log_filename, 0777, true);
+        }
+        $log_file_data = $log_filename.'/' . date('d-M-Y') . '.log';
+        // if you don't add `FILE_APPEND`, the file will be erased each time you add a log
+        file_put_contents($log_file_data, date('H:i:s').' '.$log_msg . "\n", FILE_APPEND);
     }
     // decode unicode hebrew text
     public function decodeHebrew($string)
@@ -135,6 +148,9 @@ class Priority_Hub
             'status' => ($response_code >= 200 && $response_code < 300) ? 1 : 0,
             'message' => ($response_message ? $response_message : $response->get_error_message())
         ];
+    }
+    function get_user_api_config($key){
+        return json_decode(get_user_meta($this->get_user()->ID,'description',true))->$key ?? null;
     }
     public function sendEmailError($subject = '', $error = '')
     {
@@ -320,6 +336,9 @@ class Priority_Hub
     function post_order_to_priority($order){
         return null;
     }
+    function post_items_to_priority(){
+        return null;
+    }
     function post_otc_to_priority($invoice){
         return null;
     }
@@ -358,7 +377,7 @@ class Priority_Hub
     function set_inventory_level_to_location($location_id,$sku){
         return null;
     }
-    function set_inventory_level_to_user($username){
+    function set_inventory_level_to_user(){
         return null;
     }
 

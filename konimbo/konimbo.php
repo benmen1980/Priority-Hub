@@ -11,10 +11,17 @@ if ( isset( $_POST['submit'] ) && isset($_POST['konimbo_username'])&& isset($_PO
         echo 'Username does not exists';
     }
     if(!$activate_sync){
-        echo 'User does not set to integrate with Konimbo';
+        echo 'User does not set to integrate with Konimbo<br>';
+        wp_die();
     }
     $konimbo = new Konimbo($_POST['konimbo_document'],$_POST['konimbo_username']);
-    $message = $konimbo->post_user_by_username($_POST['konimbo_username'],$_POST['konimbo_order'],$_POST['konimbo_document']);
+    switch ($_POST['konimbo_document']){
+        case 'sync_products_from_Konimbo':
+            $message = $konimbo->post_items_to_priority();
+            break;
+        default:
+            $message = $konimbo->post_user_by_username($_POST['konimbo_username'],$_POST['konimbo_order'],$_POST['konimbo_document']);
+    }
     echo $message['message'];
 }
 

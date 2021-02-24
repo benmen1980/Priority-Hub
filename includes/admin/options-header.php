@@ -37,6 +37,11 @@ $hub_options = new Priority_Hub('hub','user');
                 <?php _e('istore', 'p18a'); ?>
             </a>
         </li>
+        <li>
+            <a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=paxxi'); ?>" class="<?php if($hub_options->get('tab') == 'paxxi') echo 'active'; ?>">
+                <?php _e('paxxi', 'p18a'); ?>
+            </a>
+        </li>
 
 	</ul>
 </div>
@@ -52,6 +57,9 @@ if(isset($_GET['tab'])){
             break;
         case 'istore':
             include_once (PHUB_DIR.'istore/istore.php');
+            break;
+        case 'paxxi':
+            include_once (PHUB_DIR.'paxxi/paxxi.php');
             break;
 	}
 }

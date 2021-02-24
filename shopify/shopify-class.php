@@ -237,8 +237,38 @@ function post_order_to_priority( $order ) {
     $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
     // make request
     //echo json_encode($data);
-    $response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
-    return $response;
+    //$response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
+    //return $response;
+//  if you are working without tax prices you need to modify this line Roy 7.10.18
+//'REMARK1'  =>$second_code,
+//'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
+//];
+//}
+// get discounts as items
+    //$discount =  $order->total_discount_set->presentment_money;
+    $discount_partname = '000';
+    $discount_codes = $order->discount_codes;
+    foreach ( $discount_codes as $discount_line) {
+        $data['ORDERITEMS_SUBFORM'][] = $this->get_discounts($order);
+    }
+
+// shipping rate
+
+    $shipping = $order->total_shipping_price_set->presentment_money;
+    if($shipping->amount>0){
+        $data['ORDERITEMS_SUBFORM'][] = [
+            'PARTNAME' => '000',
+            'PDES'     => '',
+            'TQUANT'   => (int)1,
+            'TOTPRICE' => (float)$shipping->amount
+        ];
+    }
+$data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
+// make request
+//echo json_encode($data);
+$response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
+return $response;
+
 }
 function post_otc_to_priority( $order ) {
     $user = $this->get_user();
@@ -492,9 +522,6 @@ function get_payment_details($order){
         ];
         return $data;
     }
-function get_user_api_config($key){
-    return json_decode(get_user_meta($this->get_user()->ID,'description',true))->$key ?? null;
-}
 function set_inventory_level_to_location($location_id,$partname){
     // get inventory from Priority
     $updated_items = [];
@@ -524,29 +551,33 @@ function set_inventory_level_to_location($location_id,$partname){
         $data = apply_filters('priority_hub_shopify_inventory',['user'=>$this->get_user(),'sku'=>$sku]);
         $sku = $data['sku'];
         $priority_stock = $item->LOGCOUNTERS_SUBFORM[0]->BALANCE;
-        foreach($variants as $variant){
-            $shopify_sku = $variant->sku;
-            if($shopify_sku == $sku){
-             $id = $variant->id;
-             $inventory_management = $variant->inventory_management;
-             $inventory_item_id = $variant->inventory_item_id;
-             // compare Shopify stock and Priority stock
-                $item_has_level = false;
-             foreach($inventory_levels as $inv){
-                 if($inventory_item_id == $inv->inventory_item_id){
-                     if($inv->available != $priority_stock ){
-                         // update Shopify
-                         $item_has_level = true;
-                         $response = $this->set_inventory_level($location_id,$inventory_item_id,$priority_stock);
-                         $updated_items[] = ['sku'=>$shopify_sku,'stock'=>$priority_stock,'response'=>$response];
-                     }
-                 }
-             }
-             if(empty($inventory_levels)){
-               $response = $this->set_inventory_level($location_id,$inventory_item_id,$priority_stock);
-               $updated_items[] = ['sku'=>$shopify_sku,'stock'=>$priority_stock,'response'=>$response];
-             }
-             // do the trick of update variant data and stock !
+        if(!empty($variants)) {
+            foreach ($variants as $variant) {
+                $shopify_sku = $variant->sku;
+                if ($shopify_sku == $sku) {
+                    $id = $variant->id;
+                    $inventory_management = $variant->inventory_management;
+                    $inventory_item_id = $variant->inventory_item_id;
+                    // compare Shopify stock and Priority stock
+                    $item_has_level = false;
+
+                    if (empty($inventory_levels)) {
+                        $response = $this->set_inventory_level($location_id, $inventory_item_id, $priority_stock);
+                        $updated_items[] = ['sku' => $shopify_sku, 'stock' => $priority_stock, 'response' => $response];
+                    }else{
+                        foreach ($inventory_levels as $inv) {
+                            if ($inventory_item_id == $inv->inventory_item_id) {
+                                if ($inv->available != $priority_stock) {
+                                    // update Shopify
+                                    $item_has_level = true;
+                                    $response = $this->set_inventory_level($location_id, $inventory_item_id, $priority_stock);
+                                    $updated_items[] = ['sku' => $shopify_sku, 'stock' => $priority_stock, 'response' => $response];
+                                }
+                            }
+                        }
+                    }
+                    // do the trick of update variant data and stock !
+                }
             }
         }
     }

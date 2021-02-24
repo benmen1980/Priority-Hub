@@ -26,8 +26,10 @@ if ( isset( $_POST['submit'] ) && isset($_POST['shopify_username'])&& isset($_PO
         $updated_items = $shopify->set_inventory_level_to_location($location_id,$sku);
         if(!empty($updated_items)) $message['message'] = 'List of inventory level updates <br>';
         $is_error = null;
-        foreach ($updated_items as $item){
-            $message['message'] .= $item['sku']. ' >> '.$item['stock'].'<br>';
+        if(!empty($updated_items)) {
+            foreach ($updated_items as $item) {
+                $message['message'] .= $item['sku'] . ' >> ' . $item['stock'] . '<br>';
+            }
         }
     } else {
     //$messages = array();
