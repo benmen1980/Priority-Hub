@@ -17,6 +17,11 @@ $hub_options = new Priority_Hub('hub','user');
 				<?php _e('Settings', 'p18a'); ?>
 			</a>
 		</li>
+        <li>
+            <a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=websdk'); ?>" class="<?php if($hub_options->get('tab') == 'websdk') echo 'active'; ?>">
+                <?php _e('WebSDK', 'p18a'); ?>
+            </a>
+        </li>
 		<li>
 			<a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=konimbo'); ?>" class="<?php if($hub_options->get('tab') == 'konimbo') echo 'active'; ?>">
 				<?php _e('konimbo', 'p18a'); ?>
@@ -49,7 +54,11 @@ $hub_options = new Priority_Hub('hub','user');
 <?php
 if(isset($_GET['tab'])){
 	switch ($_GET['tab']){
-		case 'konimbo':
+        case 'websdk':
+            include_once (PHUB_DIR.'websdk/websdk-class.php');
+            include_once (PHUB_DIR.'websdk/websdk.php');
+            break;
+	    case 'konimbo':
 			include_once (PHUB_DIR.'konimbo/konimbo.php');
 			break;
         case 'shopify':

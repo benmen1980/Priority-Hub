@@ -195,16 +195,23 @@ class Konimbo extends \Priority_Hub {
 
 		return $response;
 	}
-	function post_items_to_priority(){
+	function post_items_to_priority($sku = null){
         $message['message'] = 'Nothnig happen yet...';
         // get the token
         $productToken = 'f0a511b7aec60c6629cd6749502e5c6e08d468df818bcf368f2016e17e57e183';
+        // get token from config
+
         // get last sync time or days back
         $lastDateFilter = '&created_at_min=2021-01-22T09:00:00Z';
         // get products
         $fields = '&attributes=id,price,code,title,desc,images';
         $baseUrl =  'https://api.konimbo.co.il/v1/items?token=';
+        if(null != $sku){
+            $fields = '';
+            $baseUrl =  'https://api.konimbo.co.il/v1/items/'.$sku.'?token=';
+        }
         $url = $baseUrl.$productToken.$fields.$lastDateFilter;
+        // if debug change base url
         // send to Priority
         $response = wp_remote_get($url);
         if($response['response']['code']<=201){

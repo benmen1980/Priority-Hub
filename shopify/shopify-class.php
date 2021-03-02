@@ -8,11 +8,11 @@ function get_orders_by_user(  ) {
     //$last_sync_time = get_user_meta( $user->ID, 'shopify_last_sync_date', true );
     $last_sync_time = $this->get_last_sync_time();
     $order_id         = '';
-    //$orders_limit  = '?created_at_min=' . $last_sync_time.'&limit=250&status=any';
+    $orders_limit  = '?created_at_min=' . $last_sync_time.'&limit=250&status=any';
     //$orders_limit     = '?created_at_min=2020-10-01T00:00:00Z&created_at_max=2020-10-30T00:00:00Z&limit=250&status=any';
     //$orders_limit     = '?created_at_=2020-09-23T00:00:00Z&limit=250&status=any';
-    //$shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json'.$orders_limit;
-    $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json';
+    $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json'.$orders_limit;
+    //$shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json';
         if ( !$this->debug ) {
         $this->set_last_sync_time();
     }
