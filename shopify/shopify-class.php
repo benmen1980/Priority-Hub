@@ -171,52 +171,79 @@ foreach ( $orders as $order ) {
 return $responses;
 } // return array of Priority responses by user
 function post_order_to_priority( $order ) {
-$user = $this->get_user();
-$cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
-$data        = [
-'CUSTNAME' => $cust_number,
-'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
-//'CURDATE'  => date('Y-m-d', strtotime($order->get_date_created())),
-'BOOKNUM'  => 'SHOPIFY'.$order->name,
-//'DETAILS'  => trim(preg_replace('/\s+/', ' ', $order->note))
-];
-// billing customer details
-$customer_data                = [
-'PHONE' => $order->customer->phone,
-'EMAIL' => $order->customer->email,
-'ADRS'  => $order->default_address->address1,
-];
-$data['ORDERSCONT_SUBFORM'][] = $customer_data;
-// shipping
-$shipping_data           = [
-'NAME'      => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
-'CUSTDES'   => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
-'PHONENUM'  => $order->shipping_address->phone,
-'ADDRESS'   => $order->shipping_address->address1,
-    'STATE'      => $order->shipping_address->city
-];
-$data['SHIPTO2_SUBFORM'] = $shipping_data;
+    $user = $this->get_user();
 
-// get ordered items
-foreach ( $order->line_items as $item ) {
-$partname = $item->sku;
-// debug
-if (!empty($this->generalpart)) {
-$partname = '000';
-}
-$second_code = isset($item->second_code) ? $item->second_code : '';
-$unit_price = isset($item->unit_price) ? (float) $item->unit_price : 0.0;
-$quantity = isset($item->quantity) ? (int)$item->quantity : 0;
-$data['ORDERITEMS_SUBFORM'][] = [
-'PARTNAME' => $partname,
-'TQUANT'   => (int) $item->quantity,
-'VATPRICE' => (float)$item->price * (float)$item->quantity - $item->total_discount,
+    if(!empty($this->get_user_api_config('POST_CUSTOMER')) && $this->get_user_api_config('POST_CUSTOMER') == "true"){
+        $cust_number = $this->post_customer_to_priority($order);
+    }
+    else{
+        $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
+    }
+    $data        = [
+    'CUSTNAME' => $cust_number,
+    'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
+    //'CURDATE'  => date('Y-m-d', strtotime($order->get_date_created())),
+    'BOOKNUM'  => 'SHOPIFY'.$order->name,
+    //'DETAILS'  => trim(preg_replace('/\s+/', ' ', $order->note))
+    ];
+    // billing customer details
+    $customer_data                = [
+    'PHONE' => $order->customer->phone,
+    'EMAIL' => $order->customer->email,
+    'ADRS'  => $order->default_address->address1,
+    ];
+    $data['ORDERSCONT_SUBFORM'][] = $customer_data;
+    // shipping
+    $shipping_data           = [
+    'NAME'      => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
+    'CUSTDES'   => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
+    'PHONENUM'  => $order->shipping_address->phone,
+    'ADDRESS'   => $order->shipping_address->address1,
+        'STATE'      => $order->shipping_address->city
+    ];
+    $data['SHIPTO2_SUBFORM'] = $shipping_data;
 
+    // get ordered items
+    foreach ( $order->line_items as $item ) {
+        $partname = $item->sku;
+        // debug
+        if (!empty($this->generalpart)) {
+        $partname = '000';
+        }
+        $second_code = isset($item->second_code) ? $item->second_code : '';
+        $unit_price = isset($item->unit_price) ? (float) $item->unit_price : 0.0;
+        $quantity = isset($item->quantity) ? (int)$item->quantity : 0;
+        $data['ORDERITEMS_SUBFORM'][] = [
+        'PARTNAME' => $partname,
+        'TQUANT'   => (int) $item->quantity,
+        'VATPRICE' => (float)$item->price * (float)$item->quantity - $item->total_discount,
+
+        //  if you are working without tax prices you need to modify this line Roy 7.10.18
+        //'REMARK1'  =>$second_code,
+        //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
+        ];
+    }
+    // get discounts as items
+    $data['ORDERITEMS_SUBFORM'][] = $this->get_payment_details($order);
+    // shipping rate
+    $shipping = $order->total_shipping_price_set->presentment_money;
+    $data['ORDERITEMS_SUBFORM'][] = [
+        // 'PARTNAME' => $this->option('shipping_' . $shipping_method_id, $order->get_shipping_method()),
+        'PARTNAME' => '000',
+        'PDES'     => '',
+        'TQUANT'   => (int)1,
+        'VATPRICE' => (float)$shipping->amount
+    ];
+    $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
+    // make request
+    //echo json_encode($data);
+    //$response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
+    //return $response;
 //  if you are working without tax prices you need to modify this line Roy 7.10.18
 //'REMARK1'  =>$second_code,
 //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
-];
-}
+//];
+//}
 // get discounts as items
     //$discount =  $order->total_discount_set->presentment_money;
     $discount_partname = '000';
@@ -241,10 +268,16 @@ $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
 //echo json_encode($data);
 $response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
 return $response;
+
 }
 function post_otc_to_priority( $order ) {
-$user = $this->get_user();
+    $user = $this->get_user();
+    if(!empty($this->get_user_api_config('POST_CUSTOMER')) && $this->get_user_api_config('POST_CUSTOMER') == "true"){
+        $cust_number = $this->post_customer_to_priority($order);
+    }
+    else{
         $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
+    }
         $data        = [
             'CUSTNAME' => $cust_number,
             'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
@@ -327,9 +360,32 @@ function  get_discounts($order){
     }
     return $data;
 }
+
+function post_customer_to_priority( $order ) {
+    $user = $this->get_user();
+    $data        = [
+        'CUSTDES'   => $order->customer->first_name.' '.$order->customer->last_name,
+        'PHONE' => $order->customer->phone,
+        'EMAIL' => $order->customer->email,
+        'ADDRESS'     => $order->customer->default_address->address1,
+        'ADDRESS2'  => $order->customer->default_address->address2,
+        'STATE'     => $order->customer->default_address->country,
+        'ZIP'  => $order->customer->default_address->zip,
+    ];
+
+
+    $response = $this->makeRequest( 'POST', 'CUSTOMERS', [ 'body' => json_encode( $data ) ], $user );
+    $custname = json_decode( $response['body'])->CUSTNAME;
+    return  $custname;
+}
 function post_shipment_to_priority( $order ) {
-        $user = $this->get_user();
+    $user = $this->get_user();
+    if(!empty($this->get_user_api_config('POST_CUSTOMER')) && $this->get_user_api_config('POST_CUSTOMER') == "true"){
+        $cust_number = $this->post_customer_to_priority($order);
+    }
+    else{
         $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
+    }
         $data        = [
             'CUSTNAME' => $cust_number,
             'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
@@ -402,7 +458,10 @@ function post_shipment_to_priority( $order ) {
         $response = $this->makeRequest( 'POST', 'DOCUMENTS_D', [ 'body' => json_encode( $data ) ], $user );
         return $response;
     }
-function update_products_to_service(){
+
+
+
+    function update_products_to_service(){
     $user = $this->get_user();
     $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/products.json';
     $method = 'POST';
