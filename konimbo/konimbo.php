@@ -15,6 +15,7 @@ if ( isset( $_POST['submit'] ) && isset($_POST['konimbo_username'])&& isset($_PO
         wp_die();
     }
     $konimbo = new Konimbo($_POST['konimbo_document'],$_POST['konimbo_username']);
+    $konimbo->generalpart = $_POST['konimbo_generalpart'];
     switch ($_POST['konimbo_document']){
         case 'sync_products_from_Konimbo':
             $message = $konimbo->post_items_to_priority($_POST['konimbo_order']);

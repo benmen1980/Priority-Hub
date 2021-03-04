@@ -180,7 +180,7 @@ class Priority_Hub
         $this->document = $document;
         $this->order = $order;
         $this->debug = null != $order;
-        $this->generalpart = '';
+        //$this->generalpart = '';
         // process
         if( $document == 'sync_products_to_'.$service_name){
             $products = $this->update_products_to_service();
@@ -326,7 +326,11 @@ class Priority_Hub
     // last sync time
     function get_last_sync_time(){
         $user = $this->get_user();
-        return get_user_meta( $user->ID, strtolower($this->get_service_name()).'_last_sync_time_'.strtolower($this->get_doctype()), true );
+        $doctype = $this->get_doctype();
+        if($doctype == 'orderreceipt'){
+            $doctype = 'order';
+        }
+        return get_user_meta( $user->ID, strtolower($this->get_service_name()).'_last_sync_time_'.strtolower($doctype), true );
     }
     function set_last_sync_time(){
         $user = $this->get_user();

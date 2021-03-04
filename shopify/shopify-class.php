@@ -224,7 +224,10 @@ function post_order_to_priority( $order ) {
         ];
     }
     // get discounts as items
-    $data['ORDERITEMS_SUBFORM'][] = $this->get_payment_details($order);
+    $discount_data =$this->get_discounts($order);
+    if(!is_null($discount_data)){
+        $data['ORDERITEMS_SUBFORM'][] = $this->get_discounts($order);
+    }
     // shipping rate
     $shipping = $order->total_shipping_price_set->presentment_money;
     $data['ORDERITEMS_SUBFORM'][] = [

@@ -1,5 +1,6 @@
 <?php
 class Konimbo extends \Priority_Hub {
+    public  $generalpart;
     function get_service_name(){
         return 'Konimbo';
     }
@@ -74,7 +75,7 @@ class Konimbo extends \Priority_Hub {
 			'CUSTNAME' => $cust_number,
 			'CDES'     => $order->name,
 			//'CURDATE'  => date('Y-m-d', strtotime($order->get_date_created())),
-			'BOOKNUM'  => $order->id,
+			'BOOKNUM'  => 'KNB-'.$order->id,
 			'DETAILS'  => trim(preg_replace('/\s+/', ' ', $order->note))
 		];
 		// billing customer details
@@ -114,7 +115,7 @@ class Konimbo extends \Priority_Hub {
 				}
 			}
 			// debug
-			if (!empty($this->generalpart)) {
+			if ($this->generalpart) {
 				$partname = '000';
 			}
 			$second_code = isset($item->second_code) ? $item->second_code : '';
