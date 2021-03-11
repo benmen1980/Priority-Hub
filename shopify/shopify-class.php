@@ -11,7 +11,7 @@ function get_orders_by_user(  ) {
     $orders_limit  = '?created_at_min=' . $last_sync_time.'&limit=250&status=any';
     //$orders_limit     = '?created_at_min=2020-10-01T00:00:00Z&created_at_max=2020-10-30T00:00:00Z&limit=250&status=any';
     //$orders_limit     = '?created_at_=2020-09-23T00:00:00Z&limit=250&status=any';
-    $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json'.$orders_limit;
+    $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2021-01/orders.json'.$orders_limit;
     //$shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json';
         if ( !$this->debug ) {
         $this->set_last_sync_time();
@@ -135,7 +135,7 @@ foreach ( $orders as $order ) {
     $my_post = array(
         'post_type'    => $post_type,
         'post_title'   => $order->name . ' ' . $order->billing_address->first_name.' '.$order->billing_address->last_name,
-        'post_content' => json_encode( $response["body"] ),
+        'post_content' => $response["body"] ,
         'post_status'  => 'publish',
         'post_author'  => $user->ID,
         'tags_input'   =>  $body_array["ORDNAME"].$body_array["IVNUM"]
@@ -263,7 +263,7 @@ function post_order_to_priority( $order ) {
             'PARTNAME' => '000',
             'PDES'     => '',
             'TQUANT'   => (int)1,
-            'TOTPRICE' => (float)$shipping->amount
+            'VATPRICE' => (float)$shipping->amount
         ];
     }
 $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
@@ -363,7 +363,6 @@ function  get_discounts($order){
     }
     return $data;
 }
-
 function post_customer_to_priority( $order ) {
     $user = $this->get_user();
     $data        = [
@@ -461,10 +460,7 @@ function post_shipment_to_priority( $order ) {
         $response = $this->makeRequest( 'POST', 'DOCUMENTS_D', [ 'body' => json_encode( $data ) ], $user );
         return $response;
     }
-
-
-
-    function update_products_to_service(){
+function update_products_to_service(){
     $user = $this->get_user();
     $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/products.json';
     $method = 'POST';

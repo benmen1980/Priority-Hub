@@ -197,69 +197,96 @@ class Konimbo extends \Priority_Hub {
 		return $response;
 	}
 	function post_items_to_priority($sku = null){
-        $message['message'] = 'Nothnig happen yet...';
-        // get the token
+        $message['message'] = 'Nothing happen yet...';
+        // get the token from config
         $productToken = 'f0a511b7aec60c6629cd6749502e5c6e08d468df818bcf368f2016e17e57e183';
-        // get token from config
-
         // get last sync time or days back
-        $lastDateFilter = '&created_at_min=2021-01-22T09:00:00Z';
-        // get products
-        $fields = '&attributes=id,price,code,title,desc,images';
-        $baseUrl =  'https://api.konimbo.co.il/v1/items?token=';
-        if(null != $sku){
-            $fields = '';
-            $baseUrl =  'https://api.konimbo.co.il/v1/items/'.$sku.'?token=';
+        $start_date = '2018-01-01';
+        $now = date('Y-m-d H:i:s');
+        $data = [];
+        while($start_date < $now){
+            $end_date = date('Y-m-d', strtotime("+1 months", strtotime($start_date)));
+            // do stuff
+            $baseUrl =  'https://api.konimbo.co.il/v1/items?token=';
+            $url = $baseUrl.$productToken.'&created_at_min='.$start_date.'&created_at_max='.$end_date;
+            // if debug change base url
+            if(null != $sku){
+                $url =  'https://api.konimbo.co.il/v1/items/'.$sku.'?token='.$productToken;
+                // disable the while
+                $start_date = $now;
+            }
+            // get items from Konimbo
+            $response = wp_remote_get($url);
+            if($response['response']['code']<=201){
+                $res_data = json_decode($response['body']);
+                $data = array_merge($data,$res_data);
+            }else{
+            $subject = 'Konimbo Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
+            $this->sendEmailError($subject,'');
+            $message['message'] =  'We got error here... '.$response['body'];
+            return $message;
+            }
+            $start_date = $end_date;
         }
-        $url = $baseUrl.$productToken.$fields.$lastDateFilter;
-        // if debug change base url
-        // send to Priority
-        $response = wp_remote_get($url);
-        if($response['response']['code']<=201){
             $message['message'] = 'Starting process products...<br>';
-            $data = json_decode($response['body']);
-            foreach($data as $item){
-                $pri_data = [
-                'PARTNAME'    => $item->code,
-                'PARTDES'     => $item->title,
-                'VATPRICE'    => (float)$item->price
-                ];
-                $pri_response = $this->makeRequest('POST','LOGPART',[ 'body' => json_encode( $pri_data ) ],$this->get_user());
-                if($pri_response['code']>201){
-                    if($pri_response['code'] == 409){
-                        $msg = 'Product '.$item->code.' already exists in Priority<br>';
-                        $this->write_custom_log($msg,$this->get_user()->user_login);
+            foreach($data as $item) {
+                $is_variation = false;
+                if (!empty($item->inventory)) {
+                    $variations = $item->inventory;
+                    foreach ($variations as $variation) {
+                        if ($variation->title != 'כמות') {
+                            if (empty($variation->code)) {
+                                continue;
+                            }
+                            $is_variation = true;
+                            $pri_data = [
+                                'PARTNAME' => $variation->code,
+                                'PARTDES' => $item->title . ' ' . $variation->title,
+                                'VATPRICE' => (float)$variation->price,
+                                'SPEC1' => $item->code
+                            ];
+                        }
+                    }
+                }
+                if (false == $is_variation) {
+                    if (empty($item->code)) {
+                        continue;
+                    }
+                    $pri_data = [
+                        'PARTNAME' => $item->code,
+                        'PARTDES' => $item->title,
+                        'VATPRICE' => (float)$item->price
+                    ];
+                }
+                $pri_response = $this->makeRequest('POST', 'LOGPART', ['body' => json_encode($pri_data)], $this->get_user());
+                if ($pri_response['code'] > 201) {
+                    if ($pri_response['code'] == 409) {
+                        $msg = 'Product ' . $item->code . ' already exists in Priority<br>';
+                        $this->write_custom_log($msg, $this->get_user()->user_login);
                         $message['message'] .= $msg;
                     }
-                    if($pri_response['code'] != 409){
-                        $message['message'] = 'Error code: '.$pri_response['code'].' Message: '.$pri_response['message'];
-                        $msg = 'Konimbo Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
-                        $this->write_custom_log($msg,$this->get_user()->username);
+                    if ($pri_response['code'] != 409) {
+                        $message['message'] = 'Error code: ' . $pri_response['code'] . ' Message: ' . $pri_response['message'];
+                        $msg = 'Konimbo Error for user ' . get_user_meta($this->get_user()->ID, 'nickname', true);
+                        $this->write_custom_log($msg, $this->get_user()->username);
                         $subject = $msg;
-                        $this->sendEmailError($subject,$message['message']);
-                        break;
+                        $this->sendEmailError($subject, $message['message']);
+                        return $message;
                     }
-
-                }else{
-                    $message['message'] .= 'Product '.$item->code.' posted to Priority<br>';
+                } else {
+                    $message['message'] .= 'Product ' . $item->code . ' posted to Priority<br>';
                     // use WEBSDK to upload the images
                     $imgIndex = 1;
-                    foreach($item->images as $image){
-                        if($imgIndex == 1){
+                    foreach ($item->images as $image) {
+                        if ($imgIndex == 1) {
                             // upload main image
-                        }else{
+                        } else {
                             // upload sub form images
                         }
                         $imgIndex++;
                     }
                 }
-
             }
-        }else{
-            $subject = 'Konimbo Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
-            $this->sendEmailError($subject,'');
-            $message['message'] =  'We got error here... '.$response['body'];
-        }
         // upload image
         // process response
         return $message;

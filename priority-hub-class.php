@@ -264,7 +264,7 @@ class Priority_Hub
             $my_post = array(
                 'post_type' => $this->get_service_name().'_'.$this->get_doctype(),
                 'post_title' => $error_prefix . $doc->name . ' ' . $doc->id,
-                'post_content' => json_encode($response),
+                'post_content' => json_encode($response,JSON_UNESCAPED_UNICODE),
                 'post_status' => 'publish',
                 'post_author' => $user->ID,
                 'tags_input' => array($body_array[$ret_doc_name])
