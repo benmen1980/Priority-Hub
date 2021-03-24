@@ -168,7 +168,7 @@ class Konimbo extends \Priority_Hub {
 			5 => '5',  // JCB
 			6 => '6'   // Leumi Card
 		);
-*/
+		*/
         $konimbo_cards_dictionary = json_decode(get_user_meta($user->ID,'konimbo_credit_cards_conversion_table',true),true);
         $konimbo_number_of_payments_dictionary = json_decode(get_user_meta($user->ID,'konimbo_number_payments_conversion_table',true),true);
 		$payment_code               = $konimbo_cards_dictionary[ $credit_cart_payments->issued_company_number ];
@@ -193,6 +193,89 @@ class Konimbo extends \Priority_Hub {
 		// make request
 		//echo json_encode($data);
 		$response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
+
+		return $response;
+	}
+	function post_ainvoice_to_priority( $order) {
+        $user = $this->get_user();
+		$cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
+		$data        = [
+			'CUSTNAME' => $cust_number,
+			'CDES'     => $order->name,
+			'IVDATE'  => date('Y-m-d', strtotime($order->get_date_created())),
+			'BOOKNUM'  => 'KNB-'.$order->id,
+			'DETAILS'  => trim(preg_replace('/\s+/', ' ', $order->note))
+		];
+		// billing customer details
+		$customer_data                = [
+			'PHONE' => $order->phone,
+			'EMAIL' => $order->email,
+			//'ADRS'  => $order->address,
+		];
+		$data['AINVOICESCONT_SUBFORM'][] = $customer_data;
+
+
+		// get ordered items
+		foreach ( $order->items as $item ) {
+			$partname = $item->code;
+			// check variation
+			$variations = $order->upgrades;
+			foreach ( $variations as $variation ) {
+				if(isset($item->line_item_id) && isset($variation->inventory_code)){
+					if ( $item->line_item_id == $variation->line_item_id ) {
+						$partname = $variation->inventory_code;
+					}
+				}
+			}
+			// debug
+			if ($this->generalpart) {
+				$partname = '000';
+			}
+			$second_code = isset($item->second_code) ? $item->second_code : '';
+			$unit_price = isset($item->unit_price) ? (float) $item->unit_price : 0.0;
+			$quantity = isset($item->quantity) ? (int)$item->quantity : 0;
+			$data['AINVOICEITEMS_SUBFORM'][] = [
+				'PARTNAME' => $partname,
+				//'PARTNAME' => '000',
+				'TQUANT'   => (int) $item->quantity,
+				//'VATPRICE' => $unit_price * $quantity,
+				'VPRICE' => $unit_price,
+				//  if you are working without tax prices you need to modify this line Roy 7.10.18
+				//'REMARK1'  =>$second_code,
+				//'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
+			];
+		}
+
+		// get discounts as items
+		$discount_partname = '000';
+		foreach ( $order->discounts as $item ) {
+			$data['AINVOICEITEMS_SUBFORM'][] = [
+				'PARTNAME' => $discount_partname,
+				'TQUANT'   => -1 * (int)$item->quantity,
+				//'VATPRICE' => (float) $item->price * - 1.0 * (int)$item->quantity,
+				'VPRICE' => (float) $item->price,
+				'PDES'     => preg_replace( "/\r|\n/", "",$item->title),
+				//'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
+			];
+		}
+		// shipping rate
+
+		$shipping = $order->shipping;
+
+		$data['AINVOICEITEMS_SUBFORM'][] = [
+			// 'PARTNAME' => $this->option('shipping_' . $shipping_method_id, $order->get_shipping_method()),
+			'PARTNAME' => '000',
+			'PDES'     => $shipping->title,
+			'TQUANT'   => (int)$shipping->quantity,
+			//'VATPRICE' => (float)$shipping->price
+		];
+
+
+		// make request
+		//PriorityAPI\API::instance()->run();
+		// make request
+		//echo json_encode($data);
+		$response = $this->makeRequest( 'POST', 'AINVOICES', [ 'body' => json_encode( $data ) ], $user );
 
 		return $response;
 	}

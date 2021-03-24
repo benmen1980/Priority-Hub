@@ -39,6 +39,7 @@ class Priority_Hub
                 <select value="" name="<?php echo $this->get_service_name_lower(); ?>_document" id="<?php echo $this->get_service_name_lower(); ?>_document">
                     <option selected="selected"></option>
                     <option value="order">Order</option>
+                    <option value="ainvoice">Ainvoice</option>
                     <option value="receipt">Receipt</option>
                     <option value="otc">Over The counter invoice</option>
                     <option value="invoice">Sales Invoice</option>
@@ -248,6 +249,9 @@ class Priority_Hub
                 case 'shipment':
                     $response = $this->post_shipment_to_priority($doc);
                     break;
+                case 'ainvoice':
+                    $response = $this->post_ainvoice_to_priority($doc);
+                    break;
             }
             $responses[$doc->id] = $response;
             $response_body = json_decode($response['body']);
@@ -356,6 +360,9 @@ class Priority_Hub
         $this->post_order_to_priority( $order );
         $this->post_receipt_to_priority( $order);
     }
+    function post_ainvoice_to_priority($invoice){
+        return null;
+    }
     function get_products_from_priority(){
         $additional_url = 'LOGPART';
         $response = $this->makeRequest( 'GET', $additional_url, null,$this->get_user());
@@ -384,8 +391,35 @@ class Priority_Hub
     function set_inventory_level_to_user($user){
         return null;
     }
+    function write_to_log($message){
 
+        $service_name =$this->get_service_name_lower();
+        $current_user= $this->get_user();
+        $username = $current_user->user_login;
+        $uploads  = wp_upload_dir( null, false );
+        $logs_dir = $uploads['basedir'] . '/logs';
 
+        if ( ! is_dir( $logs_dir ) ) {
+            mkdir( $logs_dir, 0755, true );
+        }
+        $user_dir =  $logs_dir . '/' . $username ;
+
+        if ( ! is_dir( $user_dir ) ) {
+            mkdir( $user_dir, 0755, true );
+        }
+        $service_name_dir = $user_dir . '/' . $service_name;
+        if ( ! is_dir( $service_name_dir ) ) {
+            mkdir( $service_name_dir, 0755, true );
+        }
+        $d = date("dmY");
+
+        $file = fopen($service_name_dir . '/' .$d.'.log',"a"); 
+        echo fwrite($file, "\n" . date('Y-m-d h:i:s') . " :: " . $message); 
+        fclose($file);
+    }
+    // function upload_image_to_priority_product($user, $img_url, $sku){
+    //     return  null;
+    // }
 
 
 }

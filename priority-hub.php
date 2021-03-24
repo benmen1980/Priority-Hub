@@ -60,7 +60,7 @@ add_action('init', function(){
     $services = ['Shopify','Konimbo','Istore','Paxxi'];
 
     restart_Services($services);
-	});
+});
 function add_menu_items(){
     $hook = add_menu_page( 'Priority Hub', 'Priority Hub', 'activate_plugins', 'priority-hub', 'hub_options');
     //add_action( "load-$hook", 'add_options' );
@@ -83,9 +83,11 @@ class Service
 
         add_action('add_meta_boxes', array($this, 'custom_post_data_form_meta_box'));
         $this->register_cron_action();
+        //$this->write_to_log($message);
         // menu
         add_action('admin_menu',function() {
             $this->register_custom_post_type('Order');
+            $this->register_custom_post_type('ainvoice');
             $this->register_custom_post_type('otc');
             $this->register_custom_post_type('Invoice');
             $this->register_custom_post_type('Receipt');
