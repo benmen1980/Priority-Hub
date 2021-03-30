@@ -68,7 +68,7 @@ class Konimbo extends \Priority_Hub {
 			}
 		}
 	}
-	function post_order_to_priority( $order) {
+	function post_order_t(o_priority $order) {
         $user = $this->get_user();
 		$cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
 		$data        = [

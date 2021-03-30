@@ -201,7 +201,7 @@ function post_order_to_priority( $order ) {
     'PHONENUM'  => $order->shipping_address->phone,
     'ADDRESS'   => $order->shipping_address->address1,
     'ADDRESS2'   => $order->shipping_address->address2,
-    'ADDRESS3'   => $order->shipping_address->province.' '.$order->shipping_address->country,
+    'ADDRESS3'   => $order->shipping_address->province, //.' '.$order->shipping_address->country,
     'ZIP'   => $order->shipping_address->zip,
         'STATE'      => $order->shipping_address->city
     ];
