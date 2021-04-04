@@ -179,6 +179,9 @@ function post_order_to_priority( $order ) {
     else{
         $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
     }
+    //check if tax included- and calculate price according to this field
+    $tax_included = $order->taxes_included;
+
     $data        = [
     'CUSTNAME' => $cust_number,
     'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
@@ -213,12 +216,22 @@ function post_order_to_priority( $order ) {
         $second_code = isset($item->second_code) ? $item->second_code : '';
         $unit_price = isset($item->unit_price) ? (float) $item->unit_price : 0.0;
         $quantity = isset($item->quantity) ? (int)$item->quantity : 0;
+
+        
+        if($tax_included == 'true'){
+            $vat_price = (float)$item->price * (float)$item->quantity - $item->total_discount;
+            $price_field = 'VATPRICE';
+        }
+        else{
+            $vat_price = (float)$item->price;
+            $price_field = 'PRICE';
+
+        }
         $data['ORDERITEMS_SUBFORM'][] = [
         'PARTNAME' => $partname,
         'TQUANT'   => (int) $item->quantity,
-        'VATPRICE' => (float)$item->price * (float)$item->quantity - $item->total_discount,
-
-        //  if you are working without tax prices you need to modify this line Roy 7.10.18
+        $price_field => $vat_price
+        
         //'REMARK1'  =>$second_code,
         //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
         ];
@@ -235,7 +248,7 @@ function post_order_to_priority( $order ) {
         'PARTNAME' => '000',
         'PDES'     => '',
         'TQUANT'   => (int)1,
-        'VATPRICE' => (float)$shipping->amount
+        $price_field => (float)$shipping->amount
     ];
     $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
     // make request
@@ -263,7 +276,7 @@ function post_order_to_priority( $order ) {
             'PARTNAME' => '000',
             'PDES'     => '',
             'TQUANT'   => (int)1,
-            'VATPRICE' => (float)$shipping->amount
+            $price_field => (float)$shipping->amount
         ];
     }
 $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
