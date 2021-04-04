@@ -181,6 +181,12 @@ function post_order_to_priority( $order ) {
     }
     //check if tax included- and calculate price according to this field
     $tax_included = $order->taxes_included;
+    if($tax_included == 'true'){
+        $price_field = 'VATPRICE';
+    }
+    else{
+        $price_field = 'PRICE';
+    }
 
     $data        = [
     'CUSTNAME' => $cust_number,
@@ -217,20 +223,10 @@ function post_order_to_priority( $order ) {
         $unit_price = isset($item->unit_price) ? (float) $item->unit_price : 0.0;
         $quantity = isset($item->quantity) ? (int)$item->quantity : 0;
 
-        
-        if($tax_included == 'true'){
-            $vat_price = (float)$item->price * (float)$item->quantity - $item->total_discount;
-            $price_field = 'VATPRICE';
-        }
-        else{
-            $vat_price = (float)$item->price;
-            $price_field = 'PRICE';
-
-        }
         $data['ORDERITEMS_SUBFORM'][] = [
         'PARTNAME' => $partname,
         'TQUANT'   => (int) $item->quantity,
-        $price_field => $vat_price
+        $price_field => ($tax_included) ? ((float)$item->price * (float)$item->quantity - $item->total_discount) : (float)$item->price
         
         //'REMARK1'  =>$second_code,
         //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
