@@ -33,6 +33,30 @@ class WebSDK extends \Priority_Hub{
         <?php
     }
 
+    function upload_image_to_priority_product($user,$image_url, $sku){
+        $priority_url = get_user_meta($user->ID, 'url', true);
+        $tabulaini = get_user_meta($user->ID, 'application', true);
+        $company = get_user_meta($user->ID, 'environment_name', true);
+        $username = get_user_meta($user->ID, 'username', true);
+        $password = get_user_meta($user->ID, 'password', true);
+        $path = dirname(__FILE__);
+        $command = sprintf('node '.$path.'\node\uploadFileToPriority\index.js %s %s %s %s %s %s %s ',
+        $username,$password,$priority_url,$tabulaini,$company,$sku,$image_url);
+        // the command
+        //$command = sprintf('node '.realpath('').'/uploadFileToPriority\index.js %s %s %s %s %s %s %s ',
+        //$username,$password,$priority_url,$tabulaini,$company,$sku,$image_url);
+        // echo 'the real path is: '.realpath ('').'<br>';
+        
+         echo $command.'<br>';
+
+        $res = shell_exec($command);
+        echo 'shell exec done with message: <br>';
+        echo $res;
+        return $res;
+
+
+    }
+
 
 
 }
