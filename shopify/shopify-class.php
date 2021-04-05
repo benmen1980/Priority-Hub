@@ -13,7 +13,8 @@ function get_orders_by_user(  ) {
     //$orders_limit     = '?created_at_=2020-09-23T00:00:00Z&limit=250&status=any';
     $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2021-01/orders.json'.$orders_limit;
     //$shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json';
-        if ( !$this->debug ) {
+
+    if ( !$this->debug ) {
         $this->set_last_sync_time();
     }
     if ($this->debug) {
@@ -22,6 +23,7 @@ function get_orders_by_user(  ) {
     $method = 'GET';
     $YOUR_USERNAME = get_user_meta( $user->ID, 'shopify_username', true );
     $YOUR_PASSWORD = get_user_meta( $user->ID, 'shopify_password', true );
+
     $args   = [
         'headers' => array(
             'Authorization' => 'Basic ' . base64_encode( $YOUR_USERNAME . ':' . $YOUR_PASSWORD ),
@@ -223,49 +225,33 @@ function post_order_to_priority( $order ) {
         $unit_price = isset($item->unit_price) ? (float) $item->unit_price : 0.0;
         $quantity = isset($item->quantity) ? (int)$item->quantity : 0;
 
+        $discount_allocations = $item->discount_allocations;
+        $discount_amount = 0;
+        if(!empty($discount_allocations)){
+            foreach ( $discount_allocations as $discount_line) {
+                $discount_amount+= (float) $discount_line->amount;
+            }
+        }
+
         $data['ORDERITEMS_SUBFORM'][] = [
         'PARTNAME' => $partname,
+        //'PARTNAME' => '000',
         'TQUANT'   => (int) $item->quantity,
-        $price_field => ($tax_included) ? ((float)$item->price * (float)$item->quantity - $item->total_discount) : (float)$item->price
+        $price_field => (($tax_included) ? ((float)$item->price * (float)$item->quantity - $discount_amount) : (float)$item->price - ($discount_amount / (float)$item->quantity))
         
         //'REMARK1'  =>$second_code,
         //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
         ];
     }
     // get discounts as items
-    $discount_data =$this->get_discounts($order);
-    if(!is_null($discount_data)){
-        $data['ORDERITEMS_SUBFORM'][] = $this->get_discounts($order);
-    }
+    //04/04/21- recalculate discount - we dont need the general discount because eah line has his discount.
+    // $discount_data =$this->get_discounts($order);
+    // if(!is_null($discount_data)){
+    //     $data['ORDERITEMS_SUBFORM'][] = $this->get_discounts($order);
+    // }
+
+
     // shipping rate
-    $shipping = $order->total_shipping_price_set->presentment_money;
-    $data['ORDERITEMS_SUBFORM'][] = [
-        // 'PARTNAME' => $this->option('shipping_' . $shipping_method_id, $order->get_shipping_method()),
-        'PARTNAME' => '000',
-        'PDES'     => '',
-        'TQUANT'   => (int)1,
-        $price_field => (float)$shipping->amount
-    ];
-    $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
-    // make request
-    //echo json_encode($data);
-    //$response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
-    //return $response;
-//  if you are working without tax prices you need to modify this line Roy 7.10.18
-//'REMARK1'  =>$second_code,
-//'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
-//];
-//}
-// get discounts as items
-    //$discount =  $order->total_discount_set->presentment_money;
-    $discount_partname = '000';
-    $discount_codes = $order->discount_codes;
-    foreach ( $discount_codes as $discount_line) {
-        $data['ORDERITEMS_SUBFORM'][] = $this->get_discounts($order);
-    }
-
-// shipping rate
-
     $shipping = $order->total_shipping_price_set->presentment_money;
     if($shipping->amount>0){
         $data['ORDERITEMS_SUBFORM'][] = [
@@ -275,11 +261,11 @@ function post_order_to_priority( $order ) {
             $price_field => (float)$shipping->amount
         ];
     }
-$data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
-// make request
-//echo json_encode($data);
-$response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
-return $response;
+    $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
+    // make request
+    //echo json_encode($data);
+    $response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
+    return $response;
 
 }
 function post_otc_to_priority( $order ) {
@@ -372,6 +358,7 @@ function  get_discounts($order){
     }
     return $data;
 }
+
 function post_customer_to_priority( $order ) {
     $user = $this->get_user();
     $data        = [
