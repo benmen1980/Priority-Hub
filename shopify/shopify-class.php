@@ -207,9 +207,13 @@ function post_order_to_priority( $order ) {
     // shipping
     $shipping_data           = [
     'NAME'      => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
+    'EMAIL' => $order->customer->email,
     'CUSTDES'   => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
     'PHONENUM'  => $order->shipping_address->phone,
     'ADDRESS'   => $order->shipping_address->address1,
+    'ADDRESS2'   => $order->shipping_address->address2,
+    'ADDRESS3'   => $order->shipping_address->province, //.' '.$order->shipping_address->country,
+    'ZIP'   => $order->shipping_address->zip,
         'STATE'      => $order->shipping_address->city
     ];
     $data['SHIPTO2_SUBFORM'] = $shipping_data;
@@ -262,11 +266,9 @@ function post_order_to_priority( $order ) {
         ];
     }
     $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
-    // make request
-    //echo json_encode($data);
+
     $response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
     return $response;
-
 }
 function post_otc_to_priority( $order ) {
     $user = $this->get_user();
@@ -344,7 +346,7 @@ function post_otc_to_priority( $order ) {
         $response = $this->makeRequest( 'POST', 'EINVOICES', [ 'body' => json_encode( $data ) ], $user );
         return $response;
     }
-function  get_discounts($order){
+function get_discounts($order){
     //$discount =  $order->total_discount_set->presentment_money;
     $discount_partname = '000';
     $discount_codes = $order->discount_codes;
@@ -352,7 +354,7 @@ function  get_discounts($order){
         $data = [
             'PARTNAME' => $discount_partname,
             'TQUANT'   => (int)-1,
-            'TOTPRICE' => (float) $discount_line->amount * - 1.0,
+            ($this->document == 'order' ? 'VPRICE' : 'TOTPRICE') => (float) $discount_line->amount * - 1.0,
             'PDES'     => $discount_line->code.' '.$discount_line->type,
         ];
     }
