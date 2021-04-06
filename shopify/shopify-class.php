@@ -254,9 +254,10 @@ function post_order_to_priority( $order ) {
     // shipping rate
     $shipping = $order->total_shipping_price_set->presentment_money;
     if($shipping->amount>0){
+        $shipping_sku = $this->get_user_api_config('SHIPPING_PARTNAME') ?? '000';
         $data['ORDERITEMS_SUBFORM'][] = [
-            'PARTNAME' => '000',
-            'PDES'     => '',
+            'PARTNAME' => $shipping_sku,
+            //'PDES'     => '',
             'TQUANT'   => (int)1,
             $price_field => (float)$shipping->amount
         ];
