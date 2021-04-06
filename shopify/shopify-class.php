@@ -333,12 +333,13 @@ function post_otc_to_priority( $order ) {
 
         $shipping = $order->total_shipping_price_set->presentment_money;
         if($shipping->amount>0){
-        $data['EINVOICEITEMS_SUBFORM'][] = [
-            'PARTNAME' => '000',
-            'PDES'     => '',
-            'TQUANT'   => (int)1,
-            'TOTPRICE' => (float)$shipping->amount
-        ];
+            $shipping_sku = $this->get_user_api_config('SHIPPING_PARTNAME') ?? '000';
+            $data['ORDERITEMS_SUBFORM'][] = [
+                'PARTNAME' => $shipping_sku,
+                //'PDES'     => '',
+                'TQUANT'   => (int)1,
+                $price_field => (float)$shipping->amount
+            ];
         }
 
         $data['EPAYMENT2_SUBFORM'][] = $this->get_payment_details($order);
@@ -723,7 +724,7 @@ function get_list_of_variants_from_shopify(){
             }
         }
     }
-function set_inventory_level($location_id,$inventory_item_id,$available){
+    function set_inventory_level($location_id,$inventory_item_id,$available){
         // set stock level
         $shopify_base_url = 'https://'.get_user_meta( $this->get_user()->ID, 'shopify_url', true ).'/admin/api/2020-04/inventory_levels/set.json';
         $method = 'POST';
