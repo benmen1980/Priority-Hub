@@ -33,10 +33,9 @@ class Priority_Hub
         $user = wp_get_current_user();
         $user_id                = get_current_user_id();
         $username =  wp_get_current_user()->user_login;
-        $user_meta_synctime = get_user_meta($user_id, 'shopify_last_sync_time_order', true);
         ?>
 
-        <form action="<?php echo esc_url( admin_url('admin.php?page=priority-hub&tab='.$this->get_service_name_lower())); ?>" method="post">
+        <form action="" method="post">
             <input type="hidden" name="<?php echo $this->get_service_name_lower(); ?>>_action" value="sync_<?php echo $this->get_service_name_lower(); ?>">
             <table class="form-table">
                 <tbody>
