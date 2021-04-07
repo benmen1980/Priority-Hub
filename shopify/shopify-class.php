@@ -339,7 +339,7 @@ function post_otc_to_priority( $order ) {
                 'PARTNAME' => $shipping_sku,
                 //'PDES'     => '',
                 'TQUANT'   => (int)1,
-                (float)$shipping->amount
+                'TOTPRICE' => (float)$shipping->amount
             ];
         }
 
