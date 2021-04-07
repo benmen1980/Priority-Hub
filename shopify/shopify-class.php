@@ -335,7 +335,7 @@ function post_otc_to_priority( $order ) {
         $shipping = $order->total_shipping_price_set->presentment_money;
         if($shipping->amount>0){
             $shipping_sku = $this->get_user_api_config('SHIPPING_PARTNAME') ?? '000';
-            $data['ORDERITEMS_SUBFORM'][] = [
+            $data['EINVOICEITEMS_SUBFORM'][] = [
                 'PARTNAME' => $shipping_sku,
                 //'PDES'     => '',
                 'TQUANT'   => (int)1,
