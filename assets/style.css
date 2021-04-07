@@ -152,3 +152,6 @@
 .tooltip:hover .tooltiptext {
     visibility: visible;
 }
+ form input:disabled{
+    background: #dddddd;
+ }

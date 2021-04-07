@@ -15,54 +15,61 @@ function priority_hub_front_panel(){
     }
 	global $wp;
 	$current_url = home_url( add_query_arg( array(), $wp->request ) );
+
+    $user = wp_get_current_user();
+    $konimbo_activate_sync = get_user_meta( $user->ID, 'konimbo_activate_sync',true );
+    $shopify_activate_sync = get_user_meta( $user->ID, 'shopify_activate_sync',true );
+    $istore_activate_sync = get_user_meta( $user->ID, 'istore_active',true );
 	?>
     <br />
 
     <div id="p18a_tabs_menu">
         <ul>
-            <li>
-                <a href="<?php echo $current_url; ?>" class="<?php if($tab='') echo 'active'; ?>">
-					<?php _e('Settings', 'p18a'); ?>
-                </a>
-            </li>
-            <li>
-                <a href="<?php echo $current_url . '/?tab=konimbo'; ?>" class="<?php if($tab == 'konimbo') echo 'active'; ?>">
-					<?php _e('konimbo', 'p18a'); ?>
-                </a>
-            </li>
-            <li>
-                <a href="<?php echo $current_url . '/?tab=shopify'; ?>" class="<?php if($tab == 'shopify') echo 'active'; ?>">
-					<?php _e('shopify', 'p18a'); ?>
-                </a>
-            </li>
-            <li>
-                <a href="<?php echo $current_url. '/?tab=Amazon'; ?>" class="<?php if($tab == 'amazon') echo 'active'; ?>">
-					<?php _e('Amazon', 'p18a'); ?>
-                </a>
-            </li>
-            <li>
-                <a href="<?php echo $current_url. '/?tab=istore'; ?>" class="<?php if($tab == 'istore') echo 'active'; ?>">
-					<?php _e('istore', 'p18a'); ?>
-                </a>
-            </li>
-
+            <?php if($konimbo_activate_sync):?>
+                <li>
+                    <a href="<?php echo $current_url . '/?tab=konimbo'; ?>" class="<?php echo ($tab == 'konimbo') ? 'active' : ''; ?> ">
+                        <?php _e('konimbo', 'p18a'); ?>
+                    </a>
+                </li>
+            <?php endif;?>
+            <?php if($shopify_activate_sync):?>
+                <li>
+                    <a href="<?php echo $current_url . '/?tab=shopify'; ?>" class="<?php if($tab == 'shopify') echo 'active'; ?>">
+                        <?php _e('shopify', 'p18a'); ?>
+                    </a>
+                </li>
+            <?php endif;?>
+            <?php if($istore_activate_sync):?>
+                <li>
+                    <a href="<?php echo $current_url. '/?tab=istore'; ?>" class="<?php if($tab == 'istore') echo 'active'; ?>">
+                        <?php _e('istore', 'p18a'); ?>
+                    </a>
+                </li>
+            <?php endif;?>     
         </ul>
     </div>
 
 	<?php
 	if(isset($_GET['tab'])){
-		switch ($_GET['tab']){
-			case 'konimbo':
-				include_once (PHUB_DIR.'konimbo/front-konimbo.php');
-				break;
+        switch ($_GET['tab']){
+            case 'websdk':
+                include_once (PHUB_DIR.'websdk/websdk-class.php');
+                include_once (PHUB_DIR.'websdk/websdk.php');
+                break;
+            case 'konimbo':
+                include_once (PHUB_DIR.'konimbo/konimbo.php');
+                break;
             case 'shopify':
-                include_once (PHUB_DIR.'shopify/shopify-front.php');
+                include_once (PHUB_DIR.'shopify/shopify.php');
                 break;
             case 'istore':
-                include_once (PHUB_DIR.'istore/istore-front.php');
+                include_once (PHUB_DIR.'istore/istore.php');
                 break;
-		}
-	}
+            case 'paxxi':
+                include_once (PHUB_DIR.'paxxi/paxxi.php');
+                break;
+        }
+    }
     $content = ob_get_contents();
     ob_end_clean();
     return $content;
