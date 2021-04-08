@@ -35,62 +35,45 @@ class Priority_Hub
         $username =  wp_get_current_user()->user_login;
         ?>
 
-        <form action="" method="post">
+        <form action="" method="post" class="sync_priority_form">
             <input type="hidden" name="<?php echo $this->get_service_name_lower(); ?>>_action" value="sync_<?php echo $this->get_service_name_lower(); ?>">
-            <table class="form-table">
-                <tbody>
-                    <tr valign="top">
-                        <th><?php _e('Post general item','p18a');?></th>
-                        <td>
-                            <input type="checkbox" name="<?php echo $this->get_service_name_lower(); ?>_generalpart" value="generalpart">
-                        </td>
-                    </tr>
-                    <tr valign="top">
-                        <th><?php _e('User Name:','p18a');?></th>
-                        <td >
-                            <?php if(is_admin() ):?>
-                                <input type="text" name="<?php echo $this->get_service_name_lower(); ?>_username">
-                            <?php else:?>
-                                <input name="<?php echo $this->get_service_name_lower(); ?>_username" type="text"  value="<?php echo $username; ?>" readonly="reaonly"> 
-                            <?php endif;?> 
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><?php _e('Select priority Entity target:','p18a');?></th>
-                        <td>
-                            <select value="" name="<?php echo $this->get_service_name_lower(); ?>_document" id="<?php echo $this->get_service_name_lower(); ?>_document">
-                                <option selected="selected"></option>
-                                <option value="order">Order</option>
-                                <option value="ainvoice">Ainvoice</option>
-                                <option value="receipt">Receipt</option>
-                                <option value="otc">Over The counter invoice</option>
-                                <option value="invoice">Sales Invoice</option>
-                                <option value="shipment">Shipment</option>
-                                <option value="orderreceipt">Order + Receipt</option>
-                                <option value="sync_products_to_<?php echo $this->get_service_name(); ?>">Sync products to <?php echo $this->get_service_name(); ?></option>
-                                <option value="sync_products_from_<?php echo $this->get_service_name(); ?>">Sync products from <?php echo $this->get_service_name(); ?></option>
-                                <option value="sync_inventory_to_<?php echo $this->get_service_name(); ?>">Sync Inventory to <?php echo $this->get_service_name(); ?></option>
-                            </select>
-                        </td>
-                    </tr>
-                    <br>
-                    <tr>
-                        <th colspan="2">
-                        Post single Order, if you keep it empty, the system will post all orders from last sync date as defined in the user page
-                        <br>
-                        In case of inventory sync, you can specify single product sku
-                        </th>
-                    </tr>
-                    <tr>
-                        <th><?php _e('Order or SKU:','p18a');?></th>
-                        <td>
-                            <input type="text" name="<?php echo $this->get_service_name_lower(); ?>_order" value="" >
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <input name="submit" type="submit"  id="submit" class="button button-primary" value="<?php _e('Execute API','p18a');?>" />
+            <div class="checkbox_wrapper">
+                <input type="checkbox" id="generalpart" name="<?php echo $this->get_service_name_lower(); ?>_generalpart" value="generalpart">  
+                <label for="generalpart"> <?php _e('Post general item','p18a');?></label><br>  
+            </div>
+            <label for="username"><?php _e('User Name:','p18a');?></label>
+            <?php if(is_admin() ):?>
+                <input type="text" id="username" name="<?php echo $this->get_service_name_lower(); ?>_username">
+            <?php else:?>
+                <input id="username" name="<?php echo $this->get_service_name_lower(); ?>_username" type="text"  value="<?php echo $username; ?>" readonly="reaonly"> 
+            <?php endif;?>
+            <label for="<?php echo $this->get_service_name_lower(); ?>_document">
+                <?php _e('Select priority Entity target:','p18a');?>
+            </label> 
+            <select name="<?php echo $this->get_service_name_lower(); ?>_document" id="<?php echo $this->get_service_name_lower(); ?>_document">
+                <option value="order"><?php _e('Order','p18a');?></option>
+                <option value="ainvoice"><?php _e('Ainvoice','p18a');?></option>
+                <option value="receipt"><?php _e('Receipt','p18a');?></option>
+                <option value="otc"><?php _e('Over The counter invoice','p18a');?></option>
+                <option value="invoice"><?php _e('Sales Invoice','p18a');?></option>
+                <option value="shipment"><?php _e('Shipment','p18a');?></option>
+                <option value="orderreceipt"><?php _e('Order + Receipt','p18a');?></option>
+                <option value="sync_products_to_<?php echo $this->get_service_name(); ?>"><?php _e('Sync products to','p18a');?> <?php echo $this->get_service_name(); ?></option>
+                <option value="sync_products_from_<?php echo $this->get_service_name(); ?>"><?php _e('Sync products from','p18a');?> <?php echo $this->get_service_name(); ?></option>
+                <option value="sync_inventory_to_<?php echo $this->get_service_name(); ?>"><?php _e('Sync Inventory to','p18a');?> <?php echo $this->get_service_name(); ?></option>
+            </select>
+            <h6>
+                Post single Order, if you keep it empty, the system will post all orders from last sync date as defined in the user page
+                <br>
+                In case of inventory sync, you can specify single product sku
+            </h6>
+            <label for="<?php echo $this->get_service_name_lower(); ?>_order">
+                <?php _e('Order or SKU:','p18a');?>
+            </label>
+            <input type="text" id="<?php echo $this->get_service_name_lower(); ?>_order" name="<?php echo $this->get_service_name_lower(); ?>_order" value="" >
+            <input name="submit" type="submit"  id="submit" class="button button-primary" value="<?php _e('Execute API','p18a');?>" />    
         </form>
+
     <?php 
     }
     

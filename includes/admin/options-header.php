@@ -8,8 +8,6 @@ $hub_options = new Priority_Hub('hub','user');
 	<span id="p18a_version"><?php echo PHUB_VERSION; ?></span>
 </h1>
 
-<br />
-
 <div id="p18a_tabs_menu">
 	<ul>
 		<li>
