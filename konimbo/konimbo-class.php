@@ -27,6 +27,7 @@ class Konimbo extends \Priority_Hub {
 		if ($this->debug||$this->order) {
 			$order = $this->order;
 			$konimbo_url = 'https://api.konimbo.co.il/v1/orders/'.$order.'?token='.$token;
+		
 		}else{
             $this->set_last_sync_time();
             $orders_limit       = '&created_at_min=' . $last_sync_time;
@@ -114,6 +115,15 @@ class Konimbo extends \Priority_Hub {
 					}
 				}
 			}
+
+			$partname_config = $this->get_user_api_config('if_code_empty') ;
+			$partname = (($partname) ? $partname : $partname_config);
+
+			$overwrite_partname = $this->get_user_api_config('overwrite_all_codes');
+			if($overwrite_partname != ''){
+				$partname = $overwrite_partname;
+			}
+			
 			// debug
 			if ($this->generalpart) {
 				$partname = '000';
