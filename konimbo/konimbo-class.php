@@ -120,7 +120,7 @@ class Konimbo extends \Priority_Hub {
 			$partname = (($partname) ? $partname : $partname_config);
 
 			$overwrite_partname = $this->get_user_api_config('overwrite_all_codes');
-			if($overwrite_partname != ''){
+			if(!empty($overwrite_partname) ){
 				$partname = $overwrite_partname;
 			}
 			
