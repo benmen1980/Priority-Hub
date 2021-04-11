@@ -25,6 +25,11 @@ function priority_hub_front_panel(){
 
     <div id="p18a_tabs_menu">
         <ul>
+            <li>
+                <a href="<?php echo $current_url; ?>" class="<?php if(empty($_GET['tab'])) echo 'active'; ?>">
+                    <?php _e('Settings', 'p18a'); ?>
+                </a>
+            </li>
             <?php if($konimbo_activate_sync):?>
                 <li>
                     <a href="<?php echo $current_url . '/?tab=konimbo'; ?>" class="<?php echo ($tab == 'konimbo') ? 'active' : ''; ?> ">

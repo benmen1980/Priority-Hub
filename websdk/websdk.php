@@ -1,6 +1,5 @@
 <?php
 // websdk options
-echo ('<br><br>');
 
 $form = new WebSDK('','');
 $form->generate_hub_form();
