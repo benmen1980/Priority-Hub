@@ -13,7 +13,7 @@ function get_orders_by_user(  ) {
     //$orders_limit     = '?created_at_=2020-09-23T00:00:00Z&limit=250&status=any';
     $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2021-01/orders.json'.$orders_limit;
     //$shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/orders.json';
-
+    
     if ( !$this->debug ) {
         $this->set_last_sync_time();
     }
@@ -236,7 +236,7 @@ function post_order_to_priority( $order ) {
                 $discount_amount+= (float) $discount_line->amount;
             }
         }
-
+            
         $data['ORDERITEMS_SUBFORM'][] = [
         'PARTNAME' => $partname,
         //'PARTNAME' => '000',
@@ -258,7 +258,7 @@ function post_order_to_priority( $order ) {
     // shipping rate
     $shipping = $order->total_shipping_price_set->presentment_money;
     if($shipping->amount>0){
-        $shipping_sku = $this->get_user_api_config('SHIPPING_PARTNAME') ?? '000';
+        $shipping_sku = (($this->get_user_api_config('SHIPPING_PARTNAME')) ? $this->get_user_api_config('SHIPPING_PARTNAME') : '000');
         $data['ORDERITEMS_SUBFORM'][] = [
             'PARTNAME' => $shipping_sku,
             //'PDES'     => '',
@@ -333,8 +333,9 @@ function post_otc_to_priority( $order ) {
 // shipping rate
 
         $shipping = $order->total_shipping_price_set->presentment_money;
-        if($shipping->amount>0){
-            $shipping_sku = $this->get_user_api_config('SHIPPING_PARTNAME') ?? '000';
+        if((int)$shipping->amount>0){
+            $shipping_sku = $this->get_user_api_config('SHIPPING_PARTNAME');
+            $shipping_sku = (($shipping_sku) ? ($shipping_sku) : '000');
             $data['EINVOICEITEMS_SUBFORM'][] = [
                 'PARTNAME' => $shipping_sku,
                 //'PDES'     => '',
@@ -550,6 +551,8 @@ function set_inventory_level_to_location($location_id,$partname){
         $data = apply_filters('priority_hub_shopify_inventory',['user'=>$this->get_user(),'sku'=>$sku]);
         $sku = $data['sku'];
         $priority_stock = $item->LOGCOUNTERS_SUBFORM[0]->BALANCE;
+        $priority_stock_data = apply_filters( 'simply_change_priority_stock_field', ['user'=>$this->get_user(), 'item' => $item ]);
+        $priority_stock = $priority_stock_data['item'];
         if(!empty($variants)) {
             foreach ($variants as $variant) {
                 $shopify_sku = $variant->sku;
