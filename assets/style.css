@@ -4,7 +4,9 @@
     position: relative;
     top: -5px;
 }
-
+#p18a_tabs_menu{
+    margin-bottom: 25px;
+}
 #p18a_tabs_menu ul {
     list-style: none;
     padding: 0;
@@ -40,7 +42,8 @@
     border-top: 1px solid rgb(192, 192, 192);
     border-right: 1px solid rgb(192, 192, 192);
     border-bottom: 1px solid #f1f1f1;
-    background-color: #f1f1f1;
+    background-color: #616161;
+    color: #fff;
 }
 
 #p18a_tabs_menu ul a:not(.active):hover {
@@ -159,6 +162,9 @@
  body{
      background-color: #fff;
  }
+ body.singular header.entry-header{
+     padding: 0;
+ }
  body.wp-admin .sync_priority_form{
     color: #474747;
     background: #f1f1f1;
@@ -233,4 +239,5 @@
     text-transform: initial;
     font-size: 16px;
     margin: 10px 0 16px;
+    font-weight: normal;
   }

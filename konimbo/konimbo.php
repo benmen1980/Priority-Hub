@@ -1,7 +1,7 @@
 <?php
 
 // konimbo options
-	echo ('<br><br>');
+
 $form = new Konimbo('','');
 $form->generate_hub_form();
 if ( isset( $_POST['submit'] ) && isset($_POST['konimbo_username'])&& isset($_POST['konimbo_document'])){
