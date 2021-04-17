@@ -203,7 +203,7 @@ function post_order_to_priority( $order ) {
     'ADDRESS2'   => $order->shipping_address->address2,
     'ADDRESS3'   => $order->shipping_address->province, //.' '.$order->shipping_address->country,
     'ZIP'   => $order->shipping_address->zip,
-        'STATE'      => $order->shipping_address->city
+    'STATE'      => $order->shipping_address->city
     ];
     $data['SHIPTO2_SUBFORM'] = $shipping_data;
 
@@ -221,7 +221,7 @@ function post_order_to_priority( $order ) {
         'PARTNAME' => $partname,
         'TQUANT'   => (int) $item->quantity,
         'VATPRICE' => (float)$item->price * (float)$item->quantity - $item->total_discount,
-
+        'PRICE'    => (float)$item->price
         //  if you are working without tax prices you need to modify this line Roy 7.10.18
         //'REMARK1'  =>$second_code,
         //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
@@ -525,6 +525,7 @@ function set_inventory_level_to_location($location_id,$partname){
     $url_eddition = 'LOGPART?$filter='.$url_time_filter.'&$select=PARTNAME&$expand=LOGCOUNTERS_SUBFORM,PARTBALANCE_SUBFORM($select=WARHSNAME,LOCNAME,TBALANCE)';
     if(!empty($partname)){
         $url_eddition = 'LOGPART?$filter=PARTNAME eq \''.$partname.'\' &$select=PARTNAME&$expand=LOGCOUNTERS_SUBFORM,PARTBALANCE_SUBFORM($select=WARHSNAME,LOCNAME,TBALANCE)';
+
     }
     $response = $this->makeRequest( 'GET', $url_eddition, null, $this->get_user());
     if($response['code']== '200'){
