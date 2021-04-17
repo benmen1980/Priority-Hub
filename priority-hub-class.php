@@ -29,40 +29,54 @@ class Priority_Hub
         $this->doctype = $doctype;
     }
     public function generate_hub_form(){
+
+        $user = wp_get_current_user();
+        $user_id                = get_current_user_id();
+        $username =  wp_get_current_user()->user_login;
         ?>
 
-    <form action="<?php echo esc_url( admin_url('admin.php?page=priority-hub&tab='.$this->get_service_name_lower())); ?>" method="post">
+        <form action="" method="post" class="sync_priority_form">
             <input type="hidden" name="<?php echo $this->get_service_name_lower(); ?>>_action" value="sync_<?php echo $this->get_service_name_lower(); ?>">
-            <div><input type="checkbox" name="<?php echo $this->get_service_name_lower(); ?>_generalpart" value="generalpart"><span>Post general item</span></div>
-            <div><input type="text" name="<?php echo $this->get_service_name_lower(); ?>_username"><span>User Name</span></div>
-            <div>
-                <select value="" name="<?php echo $this->get_service_name_lower(); ?>_document" id="<?php echo $this->get_service_name_lower(); ?>_document">
-                    <option selected="selected"></option>
-                    <option value="order">Order</option>
-                    <option value="receipt">Receipt</option>
-                    <option value="otc">Over The counter invoice</option>
-                    <option value="invoice">Sales Invoice</option>
-                    <option value="shipment">Shipment</option>
-                    <option value="orderreceipt">Order + Receipt</option>
-                    <option value="sync_products_to_<?php echo $this->get_service_name(); ?>">Sync products to <?php echo $this->get_service_name(); ?></option>
-                    <option value="sync_products_from_<?php echo $this->get_service_name(); ?>">Sync products from <?php echo $this->get_service_name(); ?></option>
-                    <option value="sync_inventory_to_<?php echo $this->get_service_name(); ?>">Sync Inventory to <?php echo $this->get_service_name(); ?></option>
-                </select>
-                <label>Select Priority Entity target</label></div>
-            <input type="text" name="<?php echo $this->get_service_name_lower(); ?>_order" value="" placeholder="Order or SKU"><span><p>Post single Order, if you keep it empty, the system will post all orders from last sync date as defined in the user page<br>
-                                                                        In case of inventory sync, you can specify single product sku</p></span></div>
+            <div class="checkbox_wrapper">
+                <input type="checkbox" id="generalpart" name="<?php echo $this->get_service_name_lower(); ?>_generalpart" value="generalpart">  
+                <label for="generalpart"> <?php _e('Post general item','p18a');?></label><br>  
+            </div>
+            <label for="username"><?php _e('User Name:','p18a');?></label>
+            <?php if(is_admin() ):?>
+                <input type="text" id="username" name="<?php echo $this->get_service_name_lower(); ?>_username">
+            <?php else:?>
+                <input id="username" name="<?php echo $this->get_service_name_lower(); ?>_username" type="text"  value="<?php echo $username; ?>" readonly="reaonly"> 
+            <?php endif;?>
+            <label for="<?php echo $this->get_service_name_lower(); ?>_document">
+                <?php _e('Select priority Entity target:','p18a');?>
+            </label> 
+            <select name="<?php echo $this->get_service_name_lower(); ?>_document" id="<?php echo $this->get_service_name_lower(); ?>_document">
+                <option value="order"><?php _e('Order','p18a');?></option>
+                <option value="ainvoice"><?php _e('Ainvoice','p18a');?></option>
+                <option value="receipt"><?php _e('Receipt','p18a');?></option>
+                <option value="otc"><?php _e('Over The counter invoice','p18a');?></option>
+                <option value="invoice"><?php _e('Sales Invoice','p18a');?></option>
+                <option value="shipment"><?php _e('Shipment','p18a');?></option>
+                <option value="orderreceipt"><?php _e('Order + Receipt','p18a');?></option>
+                <option value="sync_products_to_<?php echo $this->get_service_name(); ?>"><?php _e('Sync products to','p18a');?> <?php echo $this->get_service_name(); ?></option>
+                <option value="sync_products_from_<?php echo $this->get_service_name(); ?>"><?php _e('Sync products from','p18a');?> <?php echo $this->get_service_name(); ?></option>
+                <option value="sync_inventory_to_<?php echo $this->get_service_name(); ?>"><?php _e('Sync Inventory to','p18a');?> <?php echo $this->get_service_name(); ?></option>
+            </select>
+            <h6>
+                Post single Order, if you keep it empty, the system will post all orders from last sync date as defined in the user page
+                <br>
+                In case of inventory sync, you can specify single product sku
+            </h6>
+            <label for="<?php echo $this->get_service_name_lower(); ?>_order">
+                <?php _e('Order or SKU:','p18a');?>
+            </label>
+            <input type="text" id="<?php echo $this->get_service_name_lower(); ?>_order" name="<?php echo $this->get_service_name_lower(); ?>_order" value="" >
+            <input name="submit" type="submit"  id="submit" class="button button-primary" value="<?php _e('Execute API','p18a');?>" />    
+        </form>
 
-            <br>
-        <?php
-        //<input type="submit" value="Click here to sync konimbo to Priority"> 4567567
-
-        wp_nonce_field( 'acme-settings-save', 'acme-custom-message' );
-        submit_button('Execute API');
-
-        ?>
-    </form>
-     <?php
+    <?php 
     }
+    
     public function run()
     {
         return is_admin() ? $this->backend() : $this->frontend();
@@ -248,6 +262,9 @@ class Priority_Hub
                 case 'shipment':
                     $response = $this->post_shipment_to_priority($doc);
                     break;
+                case 'ainvoice':
+                    $response = $this->post_ainvoice_to_priority($doc);
+                    break;
             }
             $responses[$doc->id] = $response;
             $response_body = json_decode($response['body']);
@@ -356,6 +373,9 @@ class Priority_Hub
         $this->post_order_to_priority( $order );
         $this->post_receipt_to_priority( $order);
     }
+    function post_ainvoice_to_priority($invoice){
+        return null;
+    }
     function get_products_from_priority(){
         $additional_url = 'LOGPART';
         $response = $this->makeRequest( 'GET', $additional_url, null,$this->get_user());
@@ -384,8 +404,35 @@ class Priority_Hub
     function set_inventory_level_to_user($user){
         return null;
     }
+    function write_to_log($message){
 
+        $service_name =$this->get_service_name_lower();
+        $current_user= $this->get_user();
+        $username = $current_user->user_login;
+        $uploads  = wp_upload_dir( null, false );
+        $logs_dir = $uploads['basedir'] . '/logs';
 
+        if ( ! is_dir( $logs_dir ) ) {
+            mkdir( $logs_dir, 0755, true );
+        }
+        $user_dir =  $logs_dir . '/' . $username ;
+
+        if ( ! is_dir( $user_dir ) ) {
+            mkdir( $user_dir, 0755, true );
+        }
+        $service_name_dir = $user_dir . '/' . $service_name;
+        if ( ! is_dir( $service_name_dir ) ) {
+            mkdir( $service_name_dir, 0755, true );
+        }
+        $d = date("dmY");
+
+        $file = fopen($service_name_dir . '/' .$d.'.log',"a"); 
+        echo fwrite($file, "\n" . date('Y-m-d h:i:s') . " :: " . $message); 
+        fclose($file);
+    }
+    // function upload_image_to_priority_product($user, $img_url, $sku){
+    //     return  null;
+    // }
 
 
 }

@@ -1,7 +1,6 @@
 <?php
 
 //istore options
-echo ('<br><br>');
 
 $form = new Istore('','');
 $form->generate_hub_form();
@@ -22,5 +21,6 @@ if ( isset( $_POST['submit'] ) && isset($_POST['istore_username'])&& isset($_POS
 
     $message = $istore->post_user_by_username($_POST['istore_username'], $_POST['istore_order'], $_POST['istore_document']);
     if(isset($message['message'])) echo $message['message'];
+
 }
 ?>

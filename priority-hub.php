@@ -60,7 +60,8 @@ add_action('init', function(){
     $services = ['Shopify','Konimbo','Istore','Paxxi'];
 
     restart_Services($services);
-	});
+});
+
 function add_menu_items(){
     $hook = add_menu_page( 'Priority Hub', 'Priority Hub', 'activate_plugins', 'priority-hub', 'hub_options');
     //add_action( "load-$hook", 'add_options' );
@@ -82,10 +83,13 @@ class Service
         $this->service = $service;
 
         add_action('add_meta_boxes', array($this, 'custom_post_data_form_meta_box'));
+ 
         $this->register_cron_action();
+        //$this->write_to_log($message);
         // menu
         add_action('admin_menu',function() {
             $this->register_custom_post_type('Order');
+            $this->register_custom_post_type('ainvoice');
             $this->register_custom_post_type('otc');
             $this->register_custom_post_type('Invoice');
             $this->register_custom_post_type('Receipt');
@@ -96,7 +100,20 @@ class Service
 
         });
 
+        /*
+        add authors menu filter to admin post list for custom post type
+        */
+        add_action('restrict_manage_posts',function() {
+            $this->restrict_manage_authors('Order');
+            $this->restrict_manage_authors('ainvoice');
+            $this->restrict_manage_authors('otc');
+            $this->restrict_manage_authors('Invoice');
+            $this->restrict_manage_authors('Receipt');
+            $this->restrict_manage_authors('Shipment');
+        });
     }
+
+    
     public function register_custom_post_type($document)
     {
         $labels = array(
@@ -122,7 +139,7 @@ class Service
             'set_featured_image' => __('Set featured image', 'text_domain'),
             'remove_featured_image' => __('Remove featured image', 'text_domain'),
             'use_featured_image' => __('Use as featured image', 'text_domain'),
-//'insert_into_item'      => __( 'Insert into item', 'text_domain' ),
+        //'insert_into_item'      => __( 'Insert into item', 'text_domain' ),
             'uploaded_to_this_item' => __('Uploaded to this item', 'text_domain'),
             'items_list' => __('Items list', 'text_domain'),
             'items_list_navigation' => __('Items list navigation', 'text_domain'),
@@ -132,7 +149,7 @@ class Service
             'label' => __($this->service . ' ' . $document, 'text_domain'),
             'description' => __($this->service . ' ' . $document . ' log', 'text_domain'),
             'labels' => $labels,
-            'supports' => array('title', 'editor'),
+            'supports' => array('title', 'editor', 'author'),
             'taxonomies' => array($this->service . ' ' . $document, 'OrderID', 'CustomerName'),
             'hierarchical' => false,
             'public' => true,
@@ -152,6 +169,21 @@ class Service
         add_submenu_page(strtolower($this->service), $this->service . '_' . $document, $this->service . ' ' . $document, 'manage_options', 'edit.php?post_type=' . $post_type);
 
     }
+    
+    public function restrict_manage_authors($document) {
+  
+        if (isset($_GET['post_type']) && post_type_exists($_GET['post_type']) && in_array(strtolower($_GET['post_type']), array(strtolower($this->service . '_' . $document)))) {
+            wp_dropdown_users(array(
+                'show_option_all'   => __('Show all Authors', 'text_domain'),
+                'show_option_none'  => false,
+                'name'          => 'author',
+                'selected'      => !empty($_GET['author']) ? $_GET['author'] : 0,
+                'include_selected'  => false
+            ));
+        }
+    }
+
+
 
     public function custom_post_data_form_meta_box()
     {
@@ -198,7 +230,12 @@ class Service
         add_action(strtolower($this->service).'_action_inv',array($this,'execute_cron_action_inv'),1,3);
         add_action(strtolower($this->service).'_action_products_to_priority',array($this,'execute_cron_action_products_to_priority'),1,3);
     }
+
+
 }
+
+
+
 
 
 

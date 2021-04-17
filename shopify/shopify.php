@@ -1,6 +1,5 @@
 <?php
 // shopify options
-echo ('<br><br>');
 
 $form = new Shopify('','');
 $form->generate_hub_form();
