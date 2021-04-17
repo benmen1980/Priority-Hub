@@ -14,6 +14,7 @@ class WebSDK extends \Priority_Hub{
                 <select value="" name="<?php echo $this->get_service_name_lower(); ?>_document" id="<?php echo $this->get_service_name_lower(); ?>_document">
                     <option selected="selected"></option>
                     <option value="upload-image-to-priority-product">Upload image to Priority Item</option>
+                    <option value="close-ainvoice">Close Sales Invoice</option>
 
                 </select>
                 <label>Select Priority Entity target</label></div>
@@ -53,6 +54,29 @@ class WebSDK extends \Priority_Hub{
         echo 'shell exec done with message: <br>';
         echo $res;
         return $res;
+
+
+    }
+    function close_ainvoice($user,$ivnum){
+        $priority_url = 'https://'.get_user_meta($user->ID, 'url', true);
+        $tabulaini = get_user_meta($user->ID, 'application', true);
+        $company = get_user_meta($user->ID, 'environment_name', true);
+        $username = get_user_meta($user->ID, 'username', true);
+        $password = get_user_meta($user->ID, 'password', true);
+        $path = dirname(__FILE__);
+        $command = sprintf('node '.$path.'\node\close_ainvoice\index.js %s %s %s %s %s %s',
+            $username,$password,$priority_url,$tabulaini,$company,$ivnum);
+        // the command
+        //$command = sprintf('node '.realpath('').'/uploadFileToPriority\index.js %s %s %s %s %s %s %s ',
+        //$username,$password,$priority_url,$tabulaini,$company,$sku,$image_url);
+        // echo 'the real path is: '.realpath ('').'<br>';
+
+        //echo $command.'<br>';
+
+        $res = shell_exec($command);
+        //echo 'shell exec done with message: <br>';
+        //echo $res;
+        return $command.'<br>'.$res;
 
 
     }
