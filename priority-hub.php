@@ -42,6 +42,7 @@ add_action('init', function(){
     include_once (PHUB_DIR.'konimbo/konimbo-class.php');
     include_once (PHUB_DIR.'shopify/shopify-class.php');
     include_once (PHUB_DIR.'istore/istore-class.php');
+    include_once (PHUB_DIR.'websdk/websdk-class.php');
     add_action( 'admin_menu','add_menu_items');
     add_action('admin_init', function () {
         wp_localize_script('p18a-admin-js', 'P18A', [
@@ -56,12 +57,20 @@ add_action('init', function(){
         wp_enqueue_script('p18a-admin-js', PHUB_ASSET_URL . 'admin.js', ['jquery']);
         wp_enqueue_style('p18a-admin-css', PHUB_ASSET_URL . 'style.css');
     });
+    // web sdk
+    add_action('websdk_close_invoices','execute_websdk_cron_close_invoices',1,3);
 
     $services = ['Shopify','Konimbo','Istore','Paxxi'];
 
     restart_Services($services);
 });
-
+// register web sdk
+// web sdk
+function execute_websdk_cron_close_invoices($username,$ivtype){
+    $class_name = 'WebSDK';
+    $class_service = new $class_name('',$username);
+    $class_service->close_open_invoices($ivtype);
+}
 function add_menu_items(){
     $hook = add_menu_page( 'Priority Hub', 'Priority Hub', 'activate_plugins', 'priority-hub', 'hub_options');
     //add_action( "load-$hook", 'add_options' );
@@ -218,19 +227,13 @@ class Service
         $class_service = new $class_name('sync_inventory_to_Shopify',$username);
         $class_service->post_items_to_priority();
     }
-    function execute_websdk_cron_close_invoices($username,$ivtype){
-        $class_name = 'WebSDK';
-        $class_service = new $class_name('',$username);
-        $class_service->close_open_invoices($ivtype);
-    }
     function register_cron_action(){
         // cron
         add_action(strtolower($this->service).'_action',array($this,'execute_cron_action'),1,3);
         add_action(strtolower($this->service).'_action_inv',array($this,'execute_cron_action_inv'),1,3);
         add_action(strtolower($this->service).'_action_products_to_priority',array($this,'execute_cron_action_products_to_priority'),1,3);
-        // websdk cron
-        add_action('websdk_close_invoices',array($this,'execute_websdk_cron_close_invoices'),1,3);
     }
+
 }
 
 

@@ -15,7 +15,7 @@ class WebSDK extends \Priority_Hub{
                     <option selected="selected"></option>
                     <option value="upload-image-to-priority-product">Upload image to Priority Item</option>
                     <option value="close-ainvoice">Close Sales Invoice</option>
-                    <option value="close-open-invoices">Close Open Invoices</option>
+                    <option value="close-open-invoices">Close Open Sales Invoices</option>
 
 
 
@@ -75,8 +75,8 @@ class WebSDK extends \Priority_Hub{
     function close_open_invoices($ivtype){
         $user = $this->get_user();
         $api_user = get_user_meta($user->ID, 'username', true);
-        $additional_url = $ivtype.'$filter=OWNERLOGIN eq \''.$api_user.'\' and FINAL ne \'C\'';
-        $response = $this->makeRequest( 'GET', $ivtype,null, $user );
+        $additional_url = $ivtype.'?$filter=OWNERLOGIN eq \''.$api_user.'\' and FINAL ne \'Y\'';
+        $response = $this->makeRequest( 'GET', $additional_url,null, $user );
         if($response['code']== '200'){
             $invoices = json_decode($response['body'])->value;
             $res = '';
