@@ -26,13 +26,18 @@ if ( isset( $_POST['submit'] ) && isset($_POST['websdk_username'])&& isset($_POS
     }
     if ($_POST['websdk_document'] == 'close-ainvoice') {
         $websdk_config = $_POST['websdk_config'];
-        //$raw_option = str_replace(array('.',  "\n", "\t", "\r"), '', $websdk_config);
         $config = json_decode(stripslashes($websdk_config));
         $ivnum =  $config->ivnum;
-        $username = $_POST['websdk_username'];
-        $user = get_user_by('login',$username);
-        $message['message'] = $websdk->close_ainvoice($user,$ivnum);
-        //$message['message'] = 'Message... <br>';
+        $ivtype = 'AINVOICES';
+        //$username = $_POST['websdk_username'];
+        //$user = get_user_by('login',$username);
+        $message['message'] = $websdk->close_invoice($ivnum,$ivtype);
+    }
+    if ($_POST['websdk_document'] == 'close-open-invoices') {
+        $websdk_config = $_POST['websdk_config'];
+        $config = json_decode(stripslashes($websdk_config));
+        $ivtype = 'AINVOICES';
+        $message['message'] = $websdk->close_open_invoices($ivtype);
     }
     if(isset($message['message'])) echo $message['message'];
 }

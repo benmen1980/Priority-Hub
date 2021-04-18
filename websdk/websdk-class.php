@@ -15,6 +15,9 @@ class WebSDK extends \Priority_Hub{
                     <option selected="selected"></option>
                     <option value="upload-image-to-priority-product">Upload image to Priority Item</option>
                     <option value="close-ainvoice">Close Sales Invoice</option>
+                    <option value="close-open-invoices">Close Open Invoices</option>
+
+
 
                 </select>
                 <label>Select Priority Entity target</label></div>
@@ -33,7 +36,6 @@ class WebSDK extends \Priority_Hub{
         </form>
         <?php
     }
-
     function upload_image_to_priority_product($user,$image_url, $sku){
         $priority_url = get_user_meta($user->ID, 'url', true);
         $tabulaini = get_user_meta($user->ID, 'application', true);
@@ -57,30 +59,37 @@ class WebSDK extends \Priority_Hub{
 
 
     }
-    function close_ainvoice($user,$ivnum){
+    function close_invoice($ivnum,$ivtype){
+        $user = $this->get_user();
         $priority_url = 'https://'.get_user_meta($user->ID, 'url', true);
         $tabulaini = get_user_meta($user->ID, 'application', true);
         $company = get_user_meta($user->ID, 'environment_name', true);
         $username = get_user_meta($user->ID, 'username', true);
         $password = get_user_meta($user->ID, 'password', true);
         $path = dirname(__FILE__);
-        $command = sprintf('node '.$path.'\node\close_ainvoice\index.js %s %s %s %s %s %s',
-            $username,$password,$priority_url,$tabulaini,$company,$ivnum);
-        // the command
-        //$command = sprintf('node '.realpath('').'/uploadFileToPriority\index.js %s %s %s %s %s %s %s ',
-        //$username,$password,$priority_url,$tabulaini,$company,$sku,$image_url);
-        // echo 'the real path is: '.realpath ('').'<br>';
-
-        //echo $command.'<br>';
-
+        $command = sprintf('node '.$path.'\node\close_ainvoice\index.js %s %s %s %s %s %s %s',
+            $username,$password,$priority_url,$tabulaini,$company,$ivnum,$ivtype);
         $res = shell_exec($command);
-        //echo 'shell exec done with message: <br>';
-        //echo $res;
         return $command.'<br>'.$res;
-
-
     }
-
-
-
+    function close_open_invoices($ivtype){
+        $user = $this->get_user();
+        $api_user = get_user_meta($user->ID, 'username', true);
+        $additional_url = $ivtype.'$filter=OWNERLOGIN eq \''.$api_user.'\' and FINAL ne \'C\'';
+        $response = $this->makeRequest( 'GET', $ivtype,null, $user );
+        if($response['code']== '200'){
+            $invoices = json_decode($response['body'])->value;
+            $res = '';
+            foreach ($invoices as $invoice){
+                $ivnum = $invoice->IVNUM;
+                $response = $this->close_invoice($ivnum,$ivtype);
+                $res .=  $response. '<br>';
+            }
+            return $res;
+        }else{
+            $error_message = $response['body'];
+            $this->sendEmailError('WebSdk Error while close '.$ivtype,$error_message);
+            return $error_message;
+        }
+    }
 }

@@ -7,9 +7,9 @@
 * @wordpress-plugin
 * Plugin Name: Priority Hub
 * Plugin URI: http://www.simplyCT.co.il
-* Description: Priority hub connnects any platform to Priority ERP
+* Description: Priority hub connects any platform to Priority ERP
 
-* Version: 1.07
+* Version: 1.08
 
 * Author: SimplyCT
 * Author URI: http://simplyCT.co.il
@@ -21,7 +21,7 @@
 
 
 
-define('PHUB_VERSION'       , '1.07');
+define('PHUB_VERSION'       , '1.08');
 
 define('PHUB_SELF'          , __FILE__);
 define('PHUB_URI'           , plugin_dir_url(__FILE__));
@@ -112,8 +112,6 @@ class Service
             $this->restrict_manage_authors('Shipment');
         });
     }
-
-    
     public function register_custom_post_type($document)
     {
         $labels = array(
@@ -169,7 +167,6 @@ class Service
         add_submenu_page(strtolower($this->service), $this->service . '_' . $document, $this->service . ' ' . $document, 'manage_options', 'edit.php?post_type=' . $post_type);
 
     }
-    
     public function restrict_manage_authors($document) {
   
         if (isset($_GET['post_type']) && post_type_exists($_GET['post_type']) && in_array(strtolower($_GET['post_type']), array(strtolower($this->service . '_' . $document)))) {
@@ -182,9 +179,6 @@ class Service
             ));
         }
     }
-
-
-
     public function custom_post_data_form_meta_box()
     {
         // order
@@ -224,14 +218,19 @@ class Service
         $class_service = new $class_name('sync_inventory_to_Shopify',$username);
         $class_service->post_items_to_priority();
     }
+    function execute_websdk_cron_close_invoices($username,$ivtype){
+        $class_name = 'WebSDK';
+        $class_service = new $class_name('',$username);
+        $class_service->close_open_invoices($ivtype);
+    }
     function register_cron_action(){
         // cron
         add_action(strtolower($this->service).'_action',array($this,'execute_cron_action'),1,3);
         add_action(strtolower($this->service).'_action_inv',array($this,'execute_cron_action_inv'),1,3);
         add_action(strtolower($this->service).'_action_products_to_priority',array($this,'execute_cron_action_products_to_priority'),1,3);
+        // websdk cron
+        add_action('websdk_close_invoices',array($this,'execute_websdk_cron_close_invoices'),1,3);
     }
-
-
 }
 
 
