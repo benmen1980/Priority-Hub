@@ -7,7 +7,7 @@ var configuration = {
     password: formArgv[3] || '1234567',
     appid : 'APP006',
     appkey : 'F40FFA79343C446A9931BA1177716F04',
-    url: formArgv[4] || 'https://devpri.roi-holdings.com',
+    url: 'https://' + formArgv[4] || 'https://devpri.roi-holdings.com',
     tabulaini: formArgv[5] || 'tabula.ini',
     language: 3,
     profile: {
