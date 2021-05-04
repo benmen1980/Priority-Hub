@@ -207,7 +207,7 @@ class Priority_Hub
             $messages =  $this->processResponse($responses);
             $message = $messages[$user->ID];
             $emails  = [ $user->user_email ];
-            $subject = 'Priority '.$this->service.' API error ';
+            $subject = 'Priority Hub '.$username. ' '.$service_name.' '.$document;
             if (true == $message['is_error']) {
                 $this->sendEmailError($subject, $message['message']);
             }
@@ -322,12 +322,14 @@ class Priority_Hub
                 if(isset($response['code'])){
                     $response_code = (int) $response['code'];
                     $response_body = json_decode( $response['body'] );
+                    $order_args =  $response['args'] ;
+                    $ordernumber =  json_decode($order_args['body'])->BOOKNUM;
                     if ( $response_code >= 200 & $response_code <= 201 ) {
                         $message .=  'New Priority  '.$this->get_doctype().' '. $response_body->IVNUM.' places successfully for '.$this->get_service_name().' order '.$response_body->BOOKNUM.'<br>';
                     }
                     if ( $response_code >= 400 && $response_code < 500 ) {
                         $is_error = true;
-                        $message .= 'Error while posting '.$this->get_doctype().' '. $order . '<br>';
+                        $message .= 'Error while posting '.$this->get_doctype().' '. $ordernumber . '<br>';
                         $interface_errors = $response_body->FORM->InterfaceErrors;
                         if ( is_array( $interface_errors ) ) {
                             foreach ( $interface_errors as $err_line ) {
@@ -339,7 +341,7 @@ class Priority_Hub
                             $message .= $interface_errors->text . '<br>';
                         }
                     }elseif(500 == $response_code || 0 == $response_code){
-                        $message .= 'Server Error while posting order ' . $order .' '.$response['message'].'<br>';
+                        $message .= 'Server Error while posting order ' . $ordernumber .' '.$response['message'].'<br>';
                     }
                 }elseif(isset($response['response']['code'])){
                     $message .= $response['body'].'<br>';
