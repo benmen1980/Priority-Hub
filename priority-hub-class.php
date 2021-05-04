@@ -207,7 +207,7 @@ class Priority_Hub
             $messages =  $this->processResponse($responses);
             $message = $messages[$user->ID];
             $emails  = [ $user->user_email ];
-            $subject = 'Priority Hub '.$username. ' '.$service_name.' '.$document;
+            $subject = $username. ' '.$service_name.' '.$document;
             if (true == $message['is_error']) {
                 $this->sendEmailError($subject, $message['message']);
             }
