@@ -172,15 +172,50 @@ foreach ( $orders as $order ) {
 }
 return $responses;
 } // return array of Priority responses by user
+
+function check_customer_existence($order){
+    $user = $this->get_user();
+    $response_post_cust = array();
+      //check if customer already exist in priority
+      $phone = $order->customer->phone;
+      $email = $order->customer->email;
+    //$url_addition = 'CUSTOMERS?$filter=email eq \''.$email.'\' or phone eq \''.$phone.'\'';
+    $url_addition = 'CUSTOMERS?$filter=email eq \''.$email.'\'';
+    $response = $this->makeRequest('GET', $url_addition,[],$user);
+    if($response['code']== '200' && !empty(json_decode($response['body'])->value)){
+        $reponse_customer =  $response;
+    }
+    else{
+        $response = $this->post_customer_to_priority($order);
+        $reponse_customer =  $response ;
+    }
+    return $reponse_customer;
+}
 function post_order_to_priority( $order ) {
     $user = $this->get_user();
-
+    
     if(!empty($this->get_user_api_config('POST_CUSTOMER')) && $this->get_user_api_config('POST_CUSTOMER') == "true"){
-        $cust_number = $this->post_customer_to_priority($order);
+        $reponse_customer =$this->check_customer_existence($order);
+        //get response of customer
+        if($reponse_customer['code']== '200' && !empty(json_decode($reponse_customer['body'])->value)){
+            $cust_number = json_decode($reponse_customer['body'])->value[0]->CUSTNAME;
+
+        }
+        //if customer doesnt exist, return response of post_customer
+        elseif($reponse_customer['code']== 201){
+            $cust_number = json_decode( $reponse_customer['body'])->CUSTNAME;
+
+        }
+        //didn't success to get or post customer, so stop post order and return response to display it in post
+        else{
+            return $reponse_customer;
+        }
     }
     else{
         $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
     }
+
+
     //check if tax included- and calculate price according to this field
     $tax_included = $order->taxes_included;
     if($tax_included == 'true'){
@@ -191,17 +226,17 @@ function post_order_to_priority( $order ) {
     }
 
     $data        = [
-    'CUSTNAME' => $cust_number,
-    'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
-    //'CURDATE'  => date('Y-m-d', strtotime($order->get_date_created())),
-    'BOOKNUM'  => 'SHOPIFY'.$order->name,
-    //'DETAILS'  => trim(preg_replace('/\s+/', ' ', $order->note))
+        'CUSTNAME' => $cust_number,
+        'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
+        //'CURDATE'  => date('Y-m-d', strtotime($order->get_date_created())),
+        'BOOKNUM'  => 'SHOPIFY'.$order->name,
+        //'DETAILS'  => trim(preg_replace('/\s+/', ' ', $order->note))
     ];
     // billing customer details
     $customer_data                = [
-    'PHONE' => $order->customer->phone,
-    'EMAIL' => $order->customer->email,
-    'ADRS'  => $order->default_address->address1,
+        'PHONE' => $order->customer->phone,
+        'EMAIL' => $order->customer->email,
+        'ADRS'  => $order->default_address->address1,
     ];
     $data['ORDERSCONT_SUBFORM'][] = $customer_data;
     // shipping
@@ -214,7 +249,7 @@ function post_order_to_priority( $order ) {
     'ADDRESS2'   => $order->shipping_address->address2,
     'ADDRESS3'   => $order->shipping_address->province, //.' '.$order->shipping_address->country,
     'ZIP'   => $order->shipping_address->zip,
-        'STATE'      => $order->shipping_address->city
+    'STATE'      => $order->shipping_address->city
     ];
     $data['SHIPTO2_SUBFORM'] = $shipping_data;
 
@@ -269,16 +304,37 @@ function post_order_to_priority( $order ) {
     $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
 
     $response = $this->makeRequest( 'POST', 'ORDERS', [ 'body' => json_encode( $data ) ], $user );
-    return $response;
+    if(!empty($reponse_customer)){
+        //add customer response to response to display it in post
+        $response['customer_response'] = $reponse_customer['body'];
+    }
+    return $response;    
+
 }
 function post_otc_to_priority( $order ) {
     $user = $this->get_user();
     if(!empty($this->get_user_api_config('POST_CUSTOMER')) && $this->get_user_api_config('POST_CUSTOMER') == "true"){
-        $cust_number = $this->post_customer_to_priority($order);
+        $reponse_customer =$this->check_customer_existence($order);
+        //get response of customer
+        if($reponse_customer['code']== '200' && !empty(json_decode($reponse_customer['body'])->value)){
+            $cust_number = json_decode($reponse_customer['body'])->value[0]->CUSTNAME;
+
+        }
+        //if customer doesnt exist, return response of post_customer
+        elseif($reponse_customer['code']== 201){
+            $cust_number = json_decode( $reponse_customer['body'])->CUSTNAME;
+
+        }
+        //didn't success to get or post customer, so stop post order and return response to display it in post
+        else{
+            return $reponse_customer;
+        }
     }
     else{
         $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
     }
+
+    
         $data        = [
             'CUSTNAME' => $cust_number,
             'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
@@ -286,14 +342,14 @@ function post_otc_to_priority( $order ) {
             'BOOKNUM'  => 'SHOPIFY'.$order->name,
             'DETAILS'  => 'SHOPIFY'.$order->name,
         ];
-// billing customer details
+    // billing customer details
         $customer_data                = [
             'PHONE' => $order->customer->phone,
             'EMAIL' => $order->customer->email,
             'ADRS'  => $order->default_address->address1,
         ];
         $data['EINVOICESCONT_SUBFORM'][] = $customer_data;
-// shipping
+        // shipping
         $shipping_data           = [
             'NAME'      => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
             'CUSTDES'   => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
@@ -302,10 +358,10 @@ function post_otc_to_priority( $order ) {
             'STATE'      => $order->shipping_address->city
         ];
         $data['SHIPTO2_SUBFORM'] = $shipping_data;
-// get ordered items
+        // get ordered items
         foreach ( $order->line_items as $item ) {
             $partname = $item->sku;
-// debug
+        // debug
             if (!empty($this->generalpart)) {
                 $partname = '000';
             }
@@ -316,13 +372,13 @@ function post_otc_to_priority( $order ) {
                 'PARTNAME' => $partname,
                 'TQUANT'   => (int) $item->quantity,
                 'TOTPRICE' => (float)$item->price * (float)$item->quantity - $item->total_discount,
-//  if you are working without tax prices you need to modify this line Roy 7.10.18
-//'REMARK1'  =>$second_code,
-//'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
+            //  if you are working without tax prices you need to modify this line Roy 7.10.18
+            //'REMARK1'  =>$second_code,
+            //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
             ];
         }
 
-// get discounts as items
+        // get discounts as items
         //$discount =  $order->total_discount_set->presentment_money;
         $discount_partname = '000';
         $discount_codes = $order->discount_codes;
@@ -330,7 +386,7 @@ function post_otc_to_priority( $order ) {
             $data['EINVOICEITEMS_SUBFORM'][] = $this->get_discounts($order);
         }
 
-// shipping rate
+        // shipping rate
 
         $shipping = $order->total_shipping_price_set->presentment_money;
         if((int)$shipping->amount>0){
@@ -345,10 +401,15 @@ function post_otc_to_priority( $order ) {
         }
 
         $data['EPAYMENT2_SUBFORM'][] = $this->get_payment_details($order);
+        
         // make request
         $response = $this->makeRequest( 'POST', 'EINVOICES', [ 'body' => json_encode( $data ) ], $user );
-        return $response;
-    }
+        if(!empty($reponse_customer)){
+            //add customer response to response to display it in post
+            $response['customer_response'] = $reponse_customer['body'];
+        }
+        return $response;  
+}
 function get_discounts($order){
     //$discount =  $order->total_discount_set->presentment_money;
     $discount_partname = '000';
@@ -366,6 +427,7 @@ function get_discounts($order){
 
 function post_customer_to_priority( $order ) {
     $user = $this->get_user();
+
     $data        = [
         'CUSTDES'   => $order->customer->first_name.' '.$order->customer->last_name,
         'PHONE' => $order->customer->phone,
@@ -375,34 +437,47 @@ function post_customer_to_priority( $order ) {
         'STATE'     => $order->customer->default_address->country,
         'ZIP'  => $order->customer->default_address->zip,
     ];
-
-
     $response = $this->makeRequest( 'POST', 'CUSTOMERS', [ 'body' => json_encode( $data ) ], $user );
-    $custname = json_decode( $response['body'])->CUSTNAME;
-    return  $custname;
+    //$custname = json_decode( $response['body'])->CUSTNAME;
+    return  $response;
+   
 }
 function post_shipment_to_priority( $order ) {
     $user = $this->get_user();
     if(!empty($this->get_user_api_config('POST_CUSTOMER')) && $this->get_user_api_config('POST_CUSTOMER') == "true"){
-        $cust_number = $this->post_customer_to_priority($order);
+        $reponse_customer =$this->check_customer_existence($order);
+        //get response of customer
+        if($reponse_customer['code']== '200' && !empty(json_decode($reponse_customer['body'])->value)){
+            $cust_number = json_decode($reponse_customer['body'])->value[0]->CUSTNAME;
+
+        }
+        //if customer doesnt exist, return response of post_customer
+        elseif($reponse_customer['code']== 201){
+            $cust_number = json_decode( $reponse_customer['body'])->CUSTNAME;
+
+        }
+        //didn't success to get or post customer, so stop post order and return response to display it in post
+        else{
+            return $reponse_customer;
+        }
     }
     else{
         $cust_number = get_user_meta( $user->ID, 'walk_in_customer_number', true );
     }
-        $data        = [
-            'CUSTNAME' => $cust_number,
-            'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
-            'CURDATE'  => date('Y-m-d', strtotime($order->created_at)),
-            'BOOKNUM'  => 'SHOPIFY'.$order->name,
-        ];
-// billing customer details
+    $data        = [
+        'CUSTNAME' => $cust_number,
+        'CDES'     => $order->billing_address->first_name.' '.$order->billing_address->last_name,
+        'CURDATE'  => date('Y-m-d', strtotime($order->created_at)),
+        'BOOKNUM'  => 'SHOPIFY'.$order->name,
+    ];
+    // billing customer details
         $customer_data                = [
             'PHONE' => $order->customer->phone,
             'EMAIL' => $order->customer->email,
             'ADRS'  => $order->default_address->address1,
         ];
         $data['DOCUMENTS_DCONT_SUBFORM'][] = $customer_data;
-// shipping
+        // shipping
         $shipping_data           = [
             'NAME'      => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
             'CUSTDES'   => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
@@ -412,10 +487,10 @@ function post_shipment_to_priority( $order ) {
         ];
         $data['SHIPTO2_SUBFORM'] = $shipping_data;
 
-// get ordered items
+        // get ordered items
         foreach ( $order->line_items as $item ) {
             $partname = $item->sku;
-// debug
+        // debug
             if (!empty($this->generalpart)) {
                 $partname = '000';
             }
@@ -426,13 +501,13 @@ function post_shipment_to_priority( $order ) {
                 'PARTNAME' => $partname,
                 'TQUANT'   => (int) $item->quantity,
                 'VPRICE' => (float)$item->price,
-//  if you are working without tax prices you need to modify this line Roy 7.10.18
-//'REMARK1'  =>$second_code,
-//'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
+        //  if you are working without tax prices you need to modify this line Roy 7.10.18
+        //'REMARK1'  =>$second_code,
+        //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
             ];
         }
 
-// get discounts as items
+        // get discounts as items
         $discount =  $order->total_discounts_set->presentment_money;
         $discount_partname = '000';
         if(!empty($discount)){
@@ -444,23 +519,27 @@ function post_shipment_to_priority( $order ) {
                     //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
                 ];
         }
-// shipping rate
+    // shipping rate
 
         $shipping = $order->total_shipping_price_set->presentment_money;
 
         $data['TRANSORDER_D_SUBFORM'][] = [
-// 'PARTNAME' => $this->option('shipping_' . $shipping_method_id, $order->get_shipping_method()),
+    // 'PARTNAME' => $this->option('shipping_' . $shipping_method_id, $order->get_shipping_method()),
             'PARTNAME' => '000',
             'PDES'     => '',
             'TQUANT'   => (int)1,
             'VPRICE' => (float)$shipping->amount
         ];
-       // $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
-// make request
-//echo json_encode($data);
-        $response = $this->makeRequest( 'POST', 'DOCUMENTS_D', [ 'body' => json_encode( $data ) ], $user );
-        return $response;
+    // $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
+    // make request
+    //echo json_encode($data);
+    $response = $this->makeRequest( 'POST', 'DOCUMENTS_D', [ 'body' => json_encode( $data ) ], $user );
+    if(!empty($reponse_customer)){
+        //add customer response to response to display it in post
+        $response['customer_response'] = $reponse_customer['body'];
     }
+    return $response;      
+}
 function update_products_to_service(){
     $user = $this->get_user();
     $shopify_base_url = 'https://'.get_user_meta( $user->ID, 'shopify_url', true ).'/admin/api/2020-04/products.json';
