@@ -266,22 +266,31 @@ class Priority_Hub
                     $response = $this->post_ainvoice_to_priority($doc);
                     break;
             }
+
             $responses[$doc->id] = $response;
-            $response_body = json_decode($response['body']);
+ 
             $error_prefix = '';
-            if ($response['code'] <= 201 && $response['code'] >= 200) {
+
+
+            if (($response['code'] <= 201 && $response['code'] >= 200) ) {
 
             }
+        
+    
             if (!$response['status'] || $response['code'] >= 400) {
                 $error_prefix = 'Error ';
             }
+            
             $body_array = json_decode($response["body"], true);
+            
             // Create post object
             $ret_doc_name = $this->doctype == 'order' ? 'ORDNAME' : 'IVNUM';
+
+            $post_content = json_encode($response,JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             $my_post = array(
                 'post_type' => $this->get_service_name().'_'.$this->get_doctype(),
                 'post_title' => $error_prefix . $doc->name . ' ' . $doc->id,
-                'post_content' => json_encode($response,JSON_UNESCAPED_UNICODE),
+                'post_content' => $post_content,
                 'post_status' => 'publish',
                 'post_author' => $user->ID,
                 'tags_input' => array($body_array[$ret_doc_name])
