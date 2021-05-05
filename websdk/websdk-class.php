@@ -70,6 +70,7 @@ class WebSDK extends \Priority_Hub{
         $command = sprintf('node '.$path.'\node\close_ainvoice\index.js %s %s %s %s %s %s %s',
             $username,$password,$priority_url,$tabulaini,$company,$ivnum,$ivtype);
         $res = shell_exec($command);
+        $res = empty($res) ? 'Node return empty response...' : $res;
         return $command.'<br>'.$res;
     }
     function close_open_invoices($ivtype){
