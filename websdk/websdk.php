@@ -39,7 +39,10 @@ if ( isset( $_POST['submit'] ) && isset($_POST['websdk_username'])&& isset($_POS
         $ivtype = 'AINVOICES';
         $message['message'] = $websdk->close_open_invoices($ivtype);
     }
-    if(isset($message['message'])) echo $message['message'];
+    if(isset($message['message'])){
+        echo $message['message'];
+    }
+
 }
 ?>
 <hr>

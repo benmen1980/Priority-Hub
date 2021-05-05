@@ -75,20 +75,26 @@ class WebSDK extends \Priority_Hub{
     function close_open_invoices($ivtype){
         $user = $this->get_user();
         $api_user = get_user_meta($user->ID, 'username', true);
-        $additional_url = $ivtype.'?$filter=OWNERLOGIN eq \''.$api_user.'\' and FINAL ne \'Y\'';
+        $additional_url = $ivtype.'?$select=IVNUM&$filter=OWNERLOGIN eq \''.$api_user.'\' and FINAL ne \'Y\'';
         $response = $this->makeRequest( 'GET', $additional_url,null, $user );
         if($response['code']== '200'){
             $invoices = json_decode($response['body'])->value;
+            if(empty($invoices)){
+                $this->write_to_log('No invoices to close for request: '  . $additional_url);
+                return  'No invoices to close';
+            }
             $res = '';
             foreach ($invoices as $invoice){
                 $ivnum = $invoice->IVNUM;
                 $response = $this->close_invoice($ivnum,$ivtype);
                 $res .=  $response. '<br>';
             }
+            $this->write_to_log($res);
             return $res;
         }else{
             $error_message = $response['body'];
             $this->sendEmailError('WebSdk Error while close '.$ivtype,$error_message);
+            $this->write_to_log($error_message);
             return $error_message;
         }
     }
