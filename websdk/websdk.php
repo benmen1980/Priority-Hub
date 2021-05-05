@@ -36,7 +36,7 @@ if ( isset( $_POST['submit'] ) && isset($_POST['websdk_username'])&& isset($_POS
     if ($_POST['websdk_document'] == 'close-open-invoices') {
         $websdk_config = $_POST['websdk_config'];
         $config = json_decode(stripslashes($websdk_config));
-        $ivtype = 'AINVOICES';
+        $ivtype = 'TINVOICES';
         $message['message'] = $websdk->close_open_invoices($ivtype);
     }
     if(isset($message['message'])){
