@@ -271,7 +271,6 @@ function post_order_to_priority( $order ) {
                 $discount_amount+= (float) $discount_line->amount;
             }
         }
-            
         $data['ORDERITEMS_SUBFORM'][] = [
         'PARTNAME' => $partname,
         //'PARTNAME' => '000',
@@ -368,10 +367,18 @@ function post_otc_to_priority( $order ) {
             $second_code = isset($item->second_code) ? $item->second_code : '';
             $unit_price = isset($item->unit_price) ? (float) $item->unit_price : 0.0;
             $quantity = isset($item->quantity) ? (int)$item->quantity : 0;
+            $discount_allocations = $item->discount_allocations;
+            $discount_amount = 0;
+            if(!empty($discount_allocations)){
+                foreach ( $discount_allocations as $discount_line) {
+                    $discount_amount+= (float) $discount_line->amount;
+                }
+            }
             $data['EINVOICEITEMS_SUBFORM'][] = [
                 'PARTNAME' => $partname,
                 'TQUANT'   => (int) $item->quantity,
-                'TOTPRICE' => (float)$item->price * (float)$item->quantity - $item->total_discount,
+                // 'TOTPRICE' => (float)$item->price * (float)$item->quantity - $item->total_discount,  /* roy change discount calcs 20.5.21 */
+                'TOTPRICE' => (float)$item->price * (float)$item->quantity - $discount_amount,
             //  if you are working without tax prices you need to modify this line Roy 7.10.18
             //'REMARK1'  =>$second_code,
             //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
