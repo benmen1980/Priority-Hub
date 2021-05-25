@@ -43,13 +43,8 @@ class WebSDK extends \Priority_Hub{
         $username = get_user_meta($user->ID, 'username', true);
         $password = get_user_meta($user->ID, 'password', true);
         $path = dirname(__FILE__);
-        $command = sprintf('node '.$path.'\node\uploadFileToPriority\index.js %s %s %s %s %s %s %s ',
+        $command = sprintf('node '.$path.'/node/uploadFileToPriority/index.js %s %s %s %s %s %s %s ',
         $username,$password,$priority_url,$tabulaini,$company,$sku,$image_url);
-        // the command
-        //$command = sprintf('node '.realpath('').'/uploadFileToPriority\index.js %s %s %s %s %s %s %s ',
-        //$username,$password,$priority_url,$tabulaini,$company,$sku,$image_url);
-        // echo 'the real path is: '.realpath ('').'<br>';
-        
          echo $command.'<br>';
 
         $res = shell_exec($command);
@@ -67,7 +62,7 @@ class WebSDK extends \Priority_Hub{
         $username = get_user_meta($user->ID, 'username', true);
         $password = get_user_meta($user->ID, 'password', true);
         $path = dirname(__FILE__);
-        $command = sprintf('node '.$path.'\node\close_ainvoice\index.js %s %s %s %s %s %s %s',
+        $command = sprintf('node '.$path.'/node/close_ainvoice/index.js %s %s %s %s %s %s %s',
             $username,$password,$priority_url,$tabulaini,$company,$ivnum,$ivtype);
         $res = shell_exec($command);
         $res = empty($res) ? 'Node return empty response...' : $res;
