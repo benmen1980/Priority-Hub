@@ -292,9 +292,11 @@ class Konimbo extends \Priority_Hub {
 	function post_items_to_priority($sku = null){
         $message['message'] = 'Nothing happen yet...';
         // get the token from config
-        $productToken = 'f0a511b7aec60c6629cd6749502e5c6e08d468df818bcf368f2016e17e57e183';
+        //$productToken = 'f0a511b7aec60c6629cd6749502e5c6e08d468df818bcf368f2016e17e57e183';
+        $productToken = $this->get_user_api_config('konimbo_product_token');
         // get last sync time or days back
         $start_date = '2018-01-01';
+        $start_date = ($this->get_user_api_config('konimbo_product_start_date') ?? $start_date);
         $now = date('Y-m-d H:i:s');
         $data = [];
         while($start_date < $now){
@@ -313,6 +315,8 @@ class Konimbo extends \Priority_Hub {
             if($response['response']['code']<=201){
                 $res_data = json_decode($response['body']);
                 $data = array_merge($data,$res_data);
+            }elseif($response['response']['code']==404){
+                // do nothing
             }else{
             $subject = 'Konimbo Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
             $this->sendEmailError($subject,'');
@@ -327,7 +331,7 @@ class Konimbo extends \Priority_Hub {
                 if (!empty($item->inventory)) {
                     $variations = $item->inventory;
                     foreach ($variations as $variation) {
-                        if ($variation->title != 'כמות') {
+                        if (!($variation->title == 'כמות' || $variation->code == 'Inventory')) {
                             if (empty($variation->code)) {
                                 continue;
                             }
@@ -351,12 +355,30 @@ class Konimbo extends \Priority_Hub {
                         'VATPRICE' => (float)$item->price
                     ];
                 }
+                $pri_data['PRICE']                    = (float)$item->cost;
+                $pri_data['SPEC1']                    = $item->store_category_title;
+                $pri_data['SPEC2']                    = $item->store_category_title_with_parent->parent_title;
+                $pri_data['SPEC3']                    = $item->store_category_title_with_parent->child_title;
+                $pri_data['SPEC4']                    = $item->brand;
+                $pri_data['SPEC5']                    = $item->warranty;
+                $pri_data['SPEC6']                    = $item->note;
+                // add description
+                $pri_data['PARTTEXT_SUBFORM']['TEXT'] = $item->spec_text;
+                // make request
                 $pri_response = $this->makeRequest('POST', 'LOGPART', ['body' => json_encode($pri_data)], $this->get_user());
                 if ($pri_response['code'] > 201) {
                     if ($pri_response['code'] == 409) {
                         $msg = 'Product ' . $item->code . ' already exists in Priority<br>';
                         $this->write_custom_log($msg, $this->get_user()->user_login);
                         $message['message'] .= $msg;
+                        $pri_response = $this->makeRequest('PATCH', 'LOGPART(\''.$pri_data['PARTNAME'].'\')', ['body' => json_encode($pri_data)], $this->get_user());
+                        if($pri_response['code'] <= 201){
+                            $msg = 'Product ' . $item->code . ' update succesfuly<br>';
+                            $message['message'] .= $msg;
+                        }else{
+                            $message['message'] .= 'Error code: ' . $pri_response['code'] . ' Message: ' . $pri_response['message'];
+                        }
+                        continue;
                     }
                     if ($pri_response['code'] != 409) {
                         $message['message'] = 'Error code: ' . $pri_response['code'] . ' Message: ' . $pri_response['message'];
