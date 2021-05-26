@@ -27,7 +27,7 @@ class Konimbo extends \Priority_Hub {
 		if ($this->debug||$this->order) {
 			$order = $this->order;
 			$konimbo_url = 'https://api.konimbo.co.il/v1/orders/'.$order.'?token='.$token;
-		
+
 		}else{
             $this->set_last_sync_time();
             $orders_limit       = '&created_at_min=' . $last_sync_time;
@@ -123,7 +123,7 @@ class Konimbo extends \Priority_Hub {
 			if(!empty($overwrite_partname) ){
 				$partname = $overwrite_partname;
 			}
-			
+
 			// debug
 			if ($this->generalpart) {
 				$partname = '000';
@@ -313,7 +313,8 @@ class Konimbo extends \Priority_Hub {
             // get items from Konimbo
             $response = wp_remote_get($url);
             if(is_wp_error($response) ){
-                return $response->get_error_messages();
+                $message['message'] = 'wp error: '.$response->get_error_message();
+                return $message;
             }
             if($response['response']['code']<=201){
                 $res_data = json_decode($response['body']);
