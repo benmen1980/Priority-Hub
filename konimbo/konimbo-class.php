@@ -367,7 +367,7 @@ class Konimbo extends \Priority_Hub {
                 $pri_data['SPEC5']                    = $item->warranty;
                 $pri_data['SPEC6']                    = $item->note;
                 // add description
-                $pri_data['PARTTEXT_SUBFORM']['TEXT'] = $item->spec_text;
+             //   $pri_data['PARTTEXT_SUBFORM']['TEXT'] = $item->spec_text;
                 // make request
                 $pri_response = $this->makeRequest('POST', 'LOGPART', ['body' => json_encode($pri_data)], $this->get_user());
                 if ($pri_response['code'] > 201) {
