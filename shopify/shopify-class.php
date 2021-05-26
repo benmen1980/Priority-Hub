@@ -636,9 +636,9 @@ function set_inventory_level_to_location($location_id,$partname){
         // use filter priority_hub_shopify_inventory to manipulate the PARTNAME
         $data = apply_filters('priority_hub_shopify_inventory',['user'=>$this->get_user(),'sku'=>$sku]);
         $sku = $data['sku'];
-        $priority_stock = $item->LOGCOUNTERS_SUBFORM[0]->BALANCE;
+        $item->stock = $item->LOGCOUNTERS_SUBFORM[0]->BALANCE;
         $priority_stock_data = apply_filters( 'simply_change_priority_stock_field', ['user'=>$this->get_user(), 'item' => $item ]);
-        $priority_stock = $priority_stock_data['item'];
+        $priority_stock = $priority_stock_data['item']->stock;
         if(!empty($variants)) {
             foreach ($variants as $variant) {
                 $shopify_sku = $variant->sku;
@@ -711,7 +711,10 @@ function get_stock_level_from_shopify($location_id){
             while($header_url) {
                 $response2 = wp_remote_request($header_url,$args);
                 if ($respone_code <= 201) {
-                    $next_inventory_levels = json_decode($response2['body'])->inventory_levels;
+                    $next_inventory_levels = [];
+                    if(isset(json_decode($response2['body'])->inventory_levels)){
+                        $next_inventory_levels = json_decode($response2['body'])->inventory_levels;
+                    }
                     if(sizeof($next_inventory_levels)==0){
                         break;
                     }
@@ -719,8 +722,11 @@ function get_stock_level_from_shopify($location_id){
                     $header = $response2['headers'];
                     $header_data = $header->getAll();
                     //$header_data = $header['data'];
-                    $rel_next = explode(',',$header_data['link'])[1];
-                    if(null==$rel_next){
+                    //$link_array1 = explode(',',$header_data['link']);
+                    //$link_array2 = explode(';',$header_data['link']);
+                    if(!empty(explode(',',$header_data['link'])[1])){
+                        $rel_next = explode(',',$header_data['link'])[1];
+                    }else{
                         break;
                     }
                     if(isset($rel_next)){
@@ -788,8 +794,9 @@ function get_list_of_variants_from_shopify(){
                         $header = $response2['headers'];
                         $header_data = $header->getAll();
                         //$header_data = $header['data'];
-                        $rel_next = explode(',',$header_data['link'])[1];
-                        if(null==$rel_next){
+                        if(!empty(explode(',',$header_data['link'])[1])){
+                            $rel_next = explode(',',$header_data['link'])[1];
+                        }else{
                             break;
                         }
                         if(isset($rel_next)){
@@ -847,12 +854,20 @@ function get_list_of_variants_from_shopify(){
             $respone_code    = (int) wp_remote_retrieve_response_code( $response );
             $respone_message = $response['body'];
             If ( $respone_code <= 201 ) {
-                $products = json_decode( $response['body'] )->variants;
+                if(!empty(json_decode($response['body'])->variants)){
+                    $products = json_decode($response['body'])->variants;
+                }else{
+                    $products = [];
+                }
                 $header = $response['headers'];
                 $header_data = $header->getAll();
                 //$header_data = $header['data'];
-                $header_url = explode('<',$header_data['link'],2)[1];
-                $header_url = explode('>',$header_url,2)[0];
+                if (!empty($header_data['link'])) {
+                $header_url = explode('<', $header_data['link'], 2)[1];
+                $header_url = explode('>', $header_url, 2)[0];
+                }else{
+                    $header_url = null;
+                }
                 while($header_url) {
                     $response2 = wp_remote_request($header_url,$args);
                     if ($respone_code <= 201) {
