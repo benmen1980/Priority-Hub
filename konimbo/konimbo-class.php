@@ -313,7 +313,7 @@ class Konimbo extends \Priority_Hub {
             // get items from Konimbo
             $response = wp_remote_get($url);
             if(is_wp_error($response) ){
-                return get_error_messages();
+                return $response->get_error_messages();
             }
             if($response['response']['code']<=201){
                 $res_data = json_decode($response['body']);
