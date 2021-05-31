@@ -670,6 +670,7 @@ function set_inventory_level_to_location($location_id,$partname){
 return $updated_items;
 }
 function set_inventory_level_to_user(){
+    $this->location_id = $this->get_user_api_config('LOCATION_ID');
     $this->set_inventory_level2($sku = null);
 
    // $location_id = $this->get_user_api_config('LOCATION_ID');
@@ -849,59 +850,22 @@ function set_inventory_level($location_id,$inventory_item_id,$available){
         $response = wp_remote_request( $shopify_base_url, $args );
         $subject = 'shopify Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
         if ( is_wp_error( $response ) ) {
+            $this->write_to_log($response->get_error_message());
             $this->sendEmailError($subject, $response->get_error_message() );
         } else {
             $respone_code    = (int) wp_remote_retrieve_response_code( $response );
             $respone_message = $response['body'];
             If ( $respone_code <= 201 ) {
-                if(!empty(json_decode($response['body'])->variants)){
-                    $products = json_decode($response['body'])->variants;
-                }else{
-                    $products = [];
-                }
-                $header = $response['headers'];
-                $header_data = $header->getAll();
-                //$header_data = $header['data'];
-                if (!empty($header_data['link'])) {
-                $header_url = explode('<', $header_data['link'], 2)[1];
-                $header_url = explode('>', $header_url, 2)[0];
-                }else{
-                    $header_url = null;
-                }
-                while($header_url) {
-                    $response2 = wp_remote_request($header_url,$args);
-                    if ($respone_code <= 201) {
-                        $next_products = json_decode($response2['body'])->variants;
-                        if(sizeof($next_products)==0){
-                            break;
-                        }
-                        $products = array_merge($products, $next_products);
-                        $header = $response2['headers'];
-                        $header_data = $header->getAll();
-                        //$header_data = $header['data'];
-                        $rel_next = explode(',',$header_data['link'])[1];
-                        if(null==$rel_next){
-                            break;
-                        }
-                        if(isset($rel_next)){
-                            $new_url = $rel_next;
-                        }else{
-                            $new_url = $header_data['link'];
-                        }
-                        $header_url = explode('<', $new_url, 2)[1];
-                        $header_url = explode('>', $header_url, 2)[0];
-
-                    }
-                }
-                return $products;
+               return $respone_code;
             }
             if ( $respone_code >= 400 && $respone_code <= 499 &&  $respone_code != 404 ) {
+                $this->write_to_log($respone_message);
                 $error = $respone_message . '<br>' . $shopify_base_url;
                 $this->sendEmailError( $subject, $error );
-                return null;
+                return $respone_code;
             }
             if($respone_code == 404 ){
-                return null;
+                return 404;
             }
         }
 
@@ -969,7 +933,9 @@ function set_inventory_level2($partname){
             return $error_message;
         }
         // loop over items
+        $updated_item = 'Start loop items from Priority';
         foreach($items as $item){
+            $this->write_to_log($updated_item);
             $sku = $item->PARTNAME;
             // use filter priority_hub_shopify_inventory to manipulate the PARTNAME
             $data = apply_filters('priority_hub_shopify_inventory',['user'=>$this->get_user(),'sku'=>$sku]);
@@ -983,20 +949,25 @@ function set_inventory_level2($partname){
             $priority_stock = $priority_stock_data['item']->stock;
             $inventory_level = $this->get_inv_level_by_sku_graphql($sku);
             if(is_null($inventory_level)){
-                $updated_items .= 'SKU: '.$sku.' does not exists in Shopify! <br>';
+                $updated_item = 'SKU: '.$sku.' does not exists in Shopify.';
+                $updated_items .= $updated_item;
                 continue;
             }
             if($priority_stock == $inventory_level->inventoryLevel->available){
-                $updated_items .= 'SKU: '.$sku.' Stock in Shopify '.$priority_stock.' equal to stock in Priority<br>';
+                $updated_item = 'SKU: '.$sku.' Stock in Shopify '.$priority_stock.' equal to stock in Priority.';
+                $updated_items .= $updated_item;
+
             }else{
                 // update shopify
                 $inventory_item_id = str_replace('gid://shopify/InventoryItem/','',explode('?',$inventory_level->id))[0];
                 $this->set_inventory_level($this->location_id,$inventory_item_id,$priority_stock);
-                $updated_items .= 'SKU: '.$sku.' Stock set to '.$priority_stock.'<br>';
+                $updated_item = 'SKU: '.$sku.' Stock set to '.$priority_stock.' .';
+                $updated_items .= $updated_item;
+
             }
 
         }
-        $this->write_to_log($updated_items);
+        //$this->write_to_log($updated_items);
         return $updated_items;
     }
 }
