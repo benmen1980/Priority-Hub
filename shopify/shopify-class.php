@@ -669,10 +669,12 @@ function set_inventory_level_to_location($location_id,$partname){
     }
 return $updated_items;
 }
-function set_inventory_level_to_user($username){
-    $location_id = $this->get_user_api_config('LOCATION_ID');
-    $updated_items = $this->set_inventory_level_to_location($location_id,null);
-    error_log('Sync inventory to shopify '.print_r($updated_items));
+function set_inventory_level_to_user(){
+    $this->set_inventory_level2($sku = null);
+
+   // $location_id = $this->get_user_api_config('LOCATION_ID');
+   // $updated_items = $this->set_inventory_level_to_location($location_id,null);
+   // error_log('Sync inventory to shopify '.print_r($updated_items));
 }
 function get_stock_level_from_shopify($location_id){
     // get stock levels from Shopify
@@ -948,6 +950,7 @@ MARKER;
     }
 function set_inventory_level2($partname){
         // get inventory from Priority
+        $this->write_to_log('Start to sync inventory');
         $updated_items = '';
         $daysback = $this->get_user_api_config('SYNC_INVENTORY_DAYS_BACK') ?? '3';
         $stamp = mktime(1 - ($daysback*24), 0, 0);
@@ -993,6 +996,7 @@ function set_inventory_level2($partname){
             }
 
         }
+        $this->write_to_log($updated_items);
         return $updated_items;
     }
 }
