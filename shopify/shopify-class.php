@@ -850,7 +850,7 @@ function set_inventory_level($location_id,$inventory_item_id,$available){
         $response = wp_remote_request( $shopify_base_url, $args );
         $subject = 'shopify Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
         if ( is_wp_error( $response ) ) {
-            $this->write_to_log($response->get_error_message());
+            $this->write_to_log('wp_error -  updating stock to Shopify: '.$response->get_error_message());
             $this->sendEmailError($subject, $response->get_error_message() );
         } else {
             $respone_code    = (int) wp_remote_retrieve_response_code( $response );
@@ -859,12 +859,13 @@ function set_inventory_level($location_id,$inventory_item_id,$available){
                return $respone_code;
             }
             if ( $respone_code >= 400 && $respone_code <= 499 &&  $respone_code != 404 ) {
-                $this->write_to_log($respone_message);
+                $this->write_to_log($respone_code.' error updating stock to Shopify: '.$respone_message);
                 $error = $respone_message . '<br>' . $shopify_base_url;
                 $this->sendEmailError( $subject, $error );
                 return $respone_code;
             }
             if($respone_code == 404 ){
+                $this->write_to_log('404 error updating stock to Shopify: '.$respone_message);
                 return 404;
             }
         }
@@ -962,6 +963,7 @@ function set_inventory_level2($partname){
             }else{
                 // update shopify
                 $inventory_item_id = str_replace('gid://shopify/InventoryItem/','',explode('?',$inventory_level->id))[0];
+                $this->write_to_log('params: '.$this->location_id.' '.$inventory_item_id.' '.$priority_stock);
                 $this->set_inventory_level($this->location_id,$inventory_item_id,$priority_stock);
                 $updated_item = 'SKU: '.$sku.' Stock set to '.$priority_stock.' .';
                 $updated_items .= $updated_item.'<br>';
