@@ -949,7 +949,7 @@ function set_inventory_level2($partname){
             $priority_stock = $priority_stock_data['item']->stock;
             $inventory_level = $this->get_inv_level_by_sku_graphql($sku);
             if(is_null($inventory_level)){
-                $updated_item = 'SKU: '.$sku.' does not exists in Shopify.';
+                $updated_item = 'SKU: '.$sku.' does not exists in Shopify.'.$inventory_level;
                 $updated_items .= $updated_item.'<br>';
                 continue;
             }
