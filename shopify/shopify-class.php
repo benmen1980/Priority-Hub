@@ -950,19 +950,19 @@ function set_inventory_level2($partname){
             $inventory_level = $this->get_inv_level_by_sku_graphql($sku);
             if(is_null($inventory_level)){
                 $updated_item = 'SKU: '.$sku.' does not exists in Shopify.';
-                $updated_items .= $updated_item;
+                $updated_items .= $updated_item.'<br>';
                 continue;
             }
             if($priority_stock == $inventory_level->inventoryLevel->available){
                 $updated_item = 'SKU: '.$sku.' Stock in Shopify '.$priority_stock.' equal to stock in Priority.';
-                $updated_items .= $updated_item;
+                $updated_items .= $updated_item.'<br>';
 
             }else{
                 // update shopify
                 $inventory_item_id = str_replace('gid://shopify/InventoryItem/','',explode('?',$inventory_level->id))[0];
                 $this->set_inventory_level($this->location_id,$inventory_item_id,$priority_stock);
                 $updated_item = 'SKU: '.$sku.' Stock set to '.$priority_stock.' .';
-                $updated_items .= $updated_item;
+                $updated_items .= $updated_item.'<br>';
 
             }
 
