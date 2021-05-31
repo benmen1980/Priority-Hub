@@ -873,7 +873,7 @@ function set_inventory_level($location_id,$inventory_item_id,$available){
     }
 function get_inv_level_by_sku_graphql($sku){
         $location_id = $this->get_user_api_config('LOCATION_ID');
-        $endpoint =  'https://'.explode('@',get_user_meta( $this->get_user()->ID, 'shopify_url', true ))[1].'/admin/api/2020-04/graphql.json';
+        $endpoint =  'https://'.get_user_meta( $this->get_user()->ID, 'shopify_url', true ).'/admin/api/2020-04/graphql.json';
         $query = <<<MARKER
                   {"query":"{\\r\\n  inventoryItems(query:\\"sku:$sku\\", first:5) {\\r\\n    edges {\\r\\n      node {\\r\\n        id\\r\\n        sku\\r\\n        inventoryLevel (locationId:\\"gid://shopify/Location/$location_id\\") {\\r\\n           available\\r\\n           id\\r\\n        }\\r\\n      }\\r\\n    }\\r\\n  }\\r\\n}","variables":{}}
 MARKER;
