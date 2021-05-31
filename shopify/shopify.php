@@ -14,13 +14,17 @@ if ( isset( $_POST['submit'] ) && isset($_POST['shopify_username'])&& isset($_PO
         echo 'User does not set to integrate with Shopify';
     }
     $shopify = new Shopify($_POST['shopify_document'], $_POST['shopify_username']);
+    $location_id = $shopify->get_user_api_config('LOCATION_ID');
+    $shopify->location_id = $shopify->get_user_api_config('LOCATION_ID');
+    $sku = $_POST['shopify_order'];
+
     if (!empty($_POST['shopify_order'])) {
         $shopify->debug = true;
     }
     if ($_POST['shopify_document'] == 'sync_inventory_to_Shopify') {
-        //$location_id = 35456548943;
-        $location_id = $shopify->get_user_api_config('LOCATION_ID');
-        $sku = $_POST['shopify_order'];
+        $res =  $shopify->set_inventory_level2($sku);
+        echo $res;
+        return;
         $message['message'] = 'There are no inventory levels to sync <br>';
         $updated_items = $shopify->set_inventory_level_to_location($location_id,$sku);
         if(!empty($updated_items)) $message['message'] = 'List of inventory level updates <br>';

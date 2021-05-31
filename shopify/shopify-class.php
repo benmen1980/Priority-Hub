@@ -172,7 +172,6 @@ foreach ( $orders as $order ) {
 }
 return $responses;
 } // return array of Priority responses by user
-
 function check_customer_existence($order){
     $user = $this->get_user();
     $response_post_cust = array();
@@ -431,7 +430,6 @@ function get_discounts($order){
     }
     return $data;
 }
-
 function post_customer_to_priority( $order ) {
     $user = $this->get_user();
 
@@ -821,7 +819,7 @@ function get_list_of_variants_from_shopify(){
             }
         }
     }
-    function set_inventory_level($location_id,$inventory_item_id,$available){
+function set_inventory_level($location_id,$inventory_item_id,$available){
         // set stock level
         $shopify_base_url = 'https://'.get_user_meta( $this->get_user()->ID, 'shopify_url', true ).'/admin/api/2020-04/inventory_levels/set.json';
         $method = 'POST';
@@ -905,5 +903,96 @@ function get_list_of_variants_from_shopify(){
             }
         }
 
+    }
+function get_inv_level_by_sku_graphql($sku){
+        $location_id = $this->get_user_api_config('LOCATION_ID');
+        $endpoint =  'https://'.get_user_meta( $this->get_user()->ID, 'shopify_url', true ).'/admin/api/2020-04/graphql.json';
+        $query = <<<MARKER
+                  {"query":"{\\r\\n  inventoryItems(query:\\"sku:$sku\\", first:5) {\\r\\n    edges {\\r\\n      node {\\r\\n        id\\r\\n        sku\\r\\n        inventoryLevel (locationId:\\"gid://shopify/Location/$location_id\\") {\\r\\n           available\\r\\n           id\\r\\n        }\\r\\n      }\\r\\n    }\\r\\n  }\\r\\n}","variables":{}}
+MARKER;
+        $accessToken = get_user_meta( $this->get_user()->ID, 'shopify_password', true );
+
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $endpoint,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => $query,
+            CURLOPT_HTTPHEADER => array(
+                'X-Shopify-Access-Token: '.$accessToken,
+                'Content-Type: application/json',
+                'Cookie: '
+            ),
+        ));
+
+        $response = curl_exec($curl);
+        curl_close($curl);
+        $res = json_decode($response);
+        if(empty($res->data->inventoryItems->edges)){
+            return null;
+        }
+        if(sizeof($res->data->inventoryItems->edges)>0){
+            $inventory_level = $res->data->inventoryItems->edges[0]->node;
+        }else{
+            $inventory_level = null;
+        }
+        return $inventory_level;
+
+
+    }
+function set_inventory_level2($partname){
+        // get inventory from Priority
+        $updated_items = '';
+        $daysback = $this->get_user_api_config('SYNC_INVENTORY_DAYS_BACK') ?? '3';
+        $stamp = mktime(1 - ($daysback*24), 0, 0);
+        $bod = date(DATE_ATOM,$stamp);
+        $url_time_filter = urlencode('INVFLAG eq \'Y\' and (WARHSTRANSDATE ge '.$bod. ' or PURTRANSDATE ge '.$bod .' or SALETRANSDATE ge '.$bod.')');
+        $url_eddition = 'LOGPART?$filter='.$url_time_filter.'&$select=PARTNAME&$expand=LOGCOUNTERS_SUBFORM,PARTBALANCE_SUBFORM($select=WARHSNAME,LOCNAME,TBALANCE)';
+        if(!empty($partname)){
+            $url_eddition = 'LOGPART?$filter=PARTNAME eq \''.$partname.'\' &$select=PARTNAME&$expand=LOGCOUNTERS_SUBFORM,PARTBALANCE_SUBFORM($select=WARHSNAME,LOCNAME,TBALANCE)';
+        }
+        $response = $this->makeRequest( 'GET', $url_eddition, null, $this->get_user());
+        if($response['code']== '200'){
+            $items = json_decode($response['body'])->value;
+        }else{
+            $error_message = $response['body'];
+            $this->sendEmailError('Shopify Error while sync inventory',$error_message);
+            return $error_message;
+        }
+        // loop over items
+        foreach($items as $item){
+            $sku = $item->PARTNAME;
+            // use filter priority_hub_shopify_inventory to manipulate the PARTNAME
+            $data = apply_filters('priority_hub_shopify_inventory',['user'=>$this->get_user(),'sku'=>$sku]);
+            $sku = $data['sku'];
+            if(empty($item->LOGCOUNTERS_SUBFORM[0]->BALANCE)){
+                $updated_items .= 'SKU: '.$sku.' does not have stock in Priority! <br>';
+                continue;
+            }
+            $item->stock = $item->LOGCOUNTERS_SUBFORM[0]->BALANCE;
+            $priority_stock_data = apply_filters( 'simply_change_priority_stock_field', ['user'=>$this->get_user(), 'item' => $item ]);
+            $priority_stock = $priority_stock_data['item']->stock;
+            $inventory_level = $this->get_inv_level_by_sku_graphql($sku);
+            if(is_null($inventory_level)){
+                $updated_items .= 'SKU: '.$sku.' does not exists in Shopify! <br>';
+                continue;
+            }
+            if($priority_stock == $inventory_level->inventoryLevel->available){
+                $updated_items .= 'SKU: '.$sku.' Stock in Shopify '.$priority_stock.' equal to stock in Priority<br>';
+            }else{
+                // update shopify
+                $inventory_item_id = str_replace('gid://shopify/InventoryItem/','',explode('?',$inventory_level->id))[0];
+                $this->set_inventory_level($this->location_id,$inventory_item_id,$priority_stock);
+                $updated_items .= 'SKU: '.$sku.' Stock set to '.$priority_stock.'<br>';
+            }
+
+        }
+        return $updated_items;
     }
 }
