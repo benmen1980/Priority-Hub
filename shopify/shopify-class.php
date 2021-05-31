@@ -899,7 +899,7 @@ MARKER;
         ));
 
         $response = curl_exec($curl);
-        $this->write_to_log($response);
+
         curl_close($curl);
         $res = json_decode($response);
 
@@ -963,7 +963,7 @@ function set_inventory_level2($partname){
             }else{
                 // update shopify
                 $inventory_item_id = str_replace('gid://shopify/InventoryItem/','',explode('?',$inventory_level->id))[0];
-                $this->write_to_log('params: '.$this->location_id.' '.$inventory_item_id.' '.$priority_stock);
+                //$this->write_to_log('params: '.$this->location_id.' '.$inventory_item_id.' '.$priority_stock);
                 $this->set_inventory_level($this->location_id,$inventory_item_id,$priority_stock);
                 $updated_item = 'SKU: '.$sku.' Stock set to '.$priority_stock.' .';
                 $updated_items .= $updated_item.'<br>';
