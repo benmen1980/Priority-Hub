@@ -898,8 +898,10 @@ MARKER;
         ));
 
         $response = curl_exec($curl);
+        $this->write_to_log($response);
         curl_close($curl);
         $res = json_decode($response);
+
         if(empty($res->data->inventoryItems->edges)){
             return null;
         }
