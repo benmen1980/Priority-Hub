@@ -370,9 +370,8 @@ class Konimbo extends \Priority_Hub {
                 $pri_data['SPEC3']                    = $item->store_category_title_with_parent->child_title;
                 $pri_data['SPEC4']                    = $item->brand;
                 $pri_data['SPEC5']                    = $item->warranty;
-               // $pri_data['SPEC6']                    = $item->note;
                 // add description
-                $pri_data['PARTTEXT_SUBFORM']['TEXT'] = $item->note;  //$item->spec_text;
+                $pri_data['PARTTEXT_SUBFORM']['TEXT'] = $item->spec_text;  // $item->note
                 // make request
                 $pri_response = $this->makeRequest('POST', 'LOGPART', ['body' => json_encode($pri_data)], $this->get_user());
                 if ($pri_response['code'] > 201) {
@@ -390,12 +389,12 @@ class Konimbo extends \Priority_Hub {
                         continue;
                     }
                     if ($pri_response['code'] != 409) {
-                        $message['message'] = 'Error code: ' . $pri_response['code'] . ' Message: ' . $pri_response['message'];
+                        $message['message'] .= 'Item '.$item->code.' Error code: ' . $pri_response['code'] . ' Message: ' . $pri_response['message'].'<br>';
                         $msg = 'Konimbo Error for user ' . get_user_meta($this->get_user()->ID, 'nickname', true);
                         $this->write_custom_log($msg, $this->get_user()->username);
                         $subject = $msg;
                         $this->sendEmailError($subject, $message['message']);
-                        return $message;
+                       // return $message;
                     }
                 } else {
                     $message['message'] .= 'Product ' . $item->code . ' posted to Priority<br>';
