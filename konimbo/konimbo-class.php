@@ -6,6 +6,7 @@ class Konimbo extends \Priority_Hub {
     }
 	function get_orders_by_user() {
         $user = $this->get_user();
+        $order_status = $this->get_user_api_config('order_status') ?? 'שולם';
 		$token = get_user_meta( $user->ID, 'konimbo_token', true );
 		$last_sync_time = $this->get_last_sync_time();
 		$konimbo_base_url = 'https://api.konimbo.co.il/v1/orders/?token=';
@@ -13,7 +14,8 @@ class Konimbo extends \Priority_Hub {
         $filter_status = '';
             switch($this->document){
                 case 'order':
-                    $filter_status = '&payment_status=אשראי - מלא';
+               //     $filter_status = '&payment_status=אשראי - מלא';
+                    $filter_status = '&payment_status='.$order_status;
                     break;
                 case 'receipt':
                     $filter_status = '&payment_status=שולם';
@@ -90,15 +92,15 @@ class Konimbo extends \Priority_Hub {
 		$shipping_data           = [
 			'NAME'      => $order->name,
 			'CUSTDES'   => $order->name,
-			'PHONENUM'  => $order->phone,
+			'PHONENUM'  => $order->phone ?? '',
 			//	'EMAIL'     => $order->email,
 			//	'CELLPHONE' => $order->phone,
-            'STATE'     => $order->address->city,
-			'ADDRESS'   => $order->address->street,
-            'ADDRESS2'  => $order->address->street_number,
-            'ADDRESS3'  => $order->address->apartment,
-            'ZIP'       => $order->address->zip_code,
-            'ADDRESSA'  => $order->address->post_office_box
+            'STATE'     => $order->address->city ?? '',
+			'ADDRESS'   => $order->address->street ?? '',
+            'ADDRESS2'  => $order->address->street_number ?? '',
+            'ADDRESS3'  => $order->address->apartment ?? '',
+            'ZIP'       => $order->address->zip_code ?? '',
+            'ADDRESSA'  => $order->address->post_office_box ?? ''
 
 		];
 		$data['SHIPTO2_SUBFORM'] = $shipping_data;
@@ -169,6 +171,7 @@ class Konimbo extends \Priority_Hub {
 		// payment info
 		$payment              = $order->payments;
 		$credit_cart_payments = $order->credit_card_details;
+		$pay_pal_details = $order->paypal_details;
         /*
 		$konimbo_cards_dictionary   = array(
 			1 => '1',  // Isracard
@@ -181,22 +184,24 @@ class Konimbo extends \Priority_Hub {
 		*/
         $konimbo_cards_dictionary = json_decode(get_user_meta($user->ID,'konimbo_credit_cards_conversion_table',true),true);
         $konimbo_number_of_payments_dictionary = json_decode(get_user_meta($user->ID,'konimbo_number_payments_conversion_table',true),true);
-		$payment_code               = $konimbo_cards_dictionary[ $credit_cart_payments->issued_company_number ];
-		$data['PAYMENTDEF_SUBFORM'] = [
-			'PAYMENTCODE' => $payment_code,
-			'QPRICE'      => (float) $payment->single_payment,
-			// konimbo can handle multi paymnets so this might be modified
-			//'PAYACCOUNT'  => '',
-			//'PAYCODE'     => '',
-			'PAYACCOUNT'  => $credit_cart_payments->last_4d,
-			'VALIDMONTH'  => $credit_cart_payments->card_expiration,
-			'CCUID'       => $credit_cart_payments->credit_cart_token,
-			'CONFNUM'     => $credit_cart_payments->order_confirmation_id,
-			//'ROYY_NUMBEROFPAY' => $order_payments,
-			//'FIRSTPAY' => $order_first_payment,
-			//'ROYY_SECONDPAYMENT' => $order_periodical_payment
+        if(!empty(get_object_vars($credit_cart_payments))){
+        $payment_code = $konimbo_cards_dictionary[$credit_cart_payments->issued_company_number] ;
+            $data['PAYMENTDEF_SUBFORM'] = [
+                'PAYMENTCODE' => $payment_code,
+                'QPRICE'      => (float) $payment->single_payment,
+                // konimbo can handle multi paymnets so this might be modified
+                //'PAYACCOUNT'  => '',
+                //'PAYCODE'     => '',
+                'PAYACCOUNT'  => $credit_cart_payments->last_4d,
+                'VALIDMONTH'  => $credit_cart_payments->card_expiration,
+                'CCUID'       => $credit_cart_payments->credit_cart_token,
+                'CONFNUM'     => $credit_cart_payments->order_confirmation_id,
+                //'ROYY_NUMBEROFPAY' => $order_payments,
+                //'FIRSTPAY' => $order_first_payment,
+                //'ROYY_SECONDPAYMENT' => $order_periodical_payment
 
-		];
+            ];
+        }
 
 		// make request
 		//PriorityAPI\API::instance()->run();
@@ -218,8 +223,8 @@ class Konimbo extends \Priority_Hub {
 		];
 		// billing customer details
 		$customer_data                = [
-			'PHONE' => $order->phone,
-			'EMAIL' => $order->email,
+			'PHONE' => $order->phone ?? '',
+			'EMAIL' => $order->email ?? '',
 			//'ADRS'  => $order->address,
 		];
 		$data['AINVOICESCONT_SUBFORM'][] = $customer_data;

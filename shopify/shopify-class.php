@@ -678,7 +678,7 @@ function set_inventory_level_to_user(){
    // error_log('Sync inventory to shopify '.print_r($updated_items));
 }
 function get_stock_level_from_shopify($location_id){
-    // get stock levels from Shopify
+    // this function depricitaed 1.6.2021
     $shopify_base_url = 'https://'.get_user_meta( $this->get_user()->ID, 'shopify_url', true ).'/admin/api/2020-04/inventory_levels.json?location_ids='.$location_id;
     $method = 'GET';
     $YOUR_USERNAME = get_user_meta( $this->get_user()->ID, 'shopify_username', true );
@@ -753,7 +753,7 @@ function get_stock_level_from_shopify($location_id){
     }
 }
 function get_list_of_variants_from_shopify(){
-        // get stock levels from Shopify
+        // this function depricitaed 1.6.2021
         $shopify_base_url = 'https://'.get_user_meta( $this->get_user()->ID, 'shopify_url', true ).'/admin/api/2020-04/variants.json';
         $method = 'GET';
         $YOUR_USERNAME = get_user_meta( $this->get_user()->ID, 'shopify_username', true );

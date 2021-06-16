@@ -76,7 +76,6 @@ class Priority_Hub
 
     <?php 
     }
-    
     public function run()
     {
         return is_admin() ? $this->backend() : $this->frontend();
@@ -325,7 +324,8 @@ class Priority_Hub
                     $order_args =  $response['args'] ;
                     $ordernumber =  json_decode($order_args['body'])->BOOKNUM;
                     if ( $response_code >= 200 & $response_code <= 201 ) {
-                        $message .=  'New Priority  '.$this->get_doctype().' '. $response_body->IVNUM.' places successfully for '.$this->get_service_name().' order '.$response_body->BOOKNUM.'<br>';
+                        $doc = $response_body->IVNUM ?? $response_body->ORDNAME;
+                        $message .=  'New Priority  '.$this->get_doctype().' '. $doc .' places successfully for '.$this->get_service_name().' order '.$response_body->BOOKNUM.'<br>';
                     }
                     if ( $response_code >= 400 && $response_code < 500 ) {
                         $is_error = true;
