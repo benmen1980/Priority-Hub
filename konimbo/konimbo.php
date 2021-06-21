@@ -19,6 +19,9 @@ if ( isset( $_POST['submit'] ) && isset($_POST['konimbo_username'])&& isset($_PO
     switch ($_POST['konimbo_document']){
         case 'sync_products_from_Konimbo':
             $message = $konimbo->post_items_to_priority(urlencode($_POST['konimbo_order']));
+            foreach ($message as $m){
+                echo $m.'<br>';
+            }
             break;
         default:
             $message = $konimbo->post_user_by_username($_POST['konimbo_username'],$_POST['konimbo_order'],$_POST['konimbo_document']);
