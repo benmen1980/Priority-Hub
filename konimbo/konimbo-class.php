@@ -434,7 +434,9 @@ class Konimbo extends \Priority_Hub {
         $productToken = $this->get_user_api_config('konimbo_product_token');
         // get last sync time or days back
         $page = 1;
-        while(!empty($response)){
+        $res_data = ['not null'];
+        $data = [];
+        while(!empty($res_data)){
             $baseUrl =  'https://api.konimbo.co.il/v1/items?token=';
             $url = $baseUrl.$productToken.'&page='.$page;
             // if debug change base url
@@ -467,27 +469,39 @@ class Konimbo extends \Priority_Hub {
                 $subject = 'Konimbo Error for user ' . get_user_meta( $this->get_user()->ID, 'nickname', true );
                 $this->sendEmailError($subject,'');
                 array_push($message,  'Error code '.$response['response']['code'].', body: '.$response['body']);
-                break;
+                //break;
             }
             $page++;
         }
-        $message['message'] = 'Starting process products...';
+        $message['message'] = 'End process products...';
+        $pri_all = [];
         foreach($data as $item) {
+            $pri_data = [];
             $is_variation = false;
             if (!empty($item->inventory)) {
                 $variations = $item->inventory;
-                foreach ($variations as $variation) {
-                    if (!($variation->title == 'כמות' || $variation->code == 'Inventory')) {
-                        if (empty($variation->code)) {
-                            continue;
+                if (!empty($variations)) {
+                    foreach ($variations as $variation) {
+                        if (!($variation->title == 'כמות' || $variation->code == 'Inventory')) {
+                            if (empty($variation->code)) {
+                                continue;
+                            }
+                            $is_variation = true;
+                            $pri_data = [
+                                'PARTNAME' => $variation->code,
+                                'PARTDES' => $item->title . ' ' . $variation->title,
+                                'VATPRICE' => (float)$variation->price,
+                                'SPEC1' => $item->code
+                            ];
+                            $pri_data['SPEC2'] = $item->store_category_title_with_parent->parent_title;
+                            $pri_data['SPEC3'] = $item->store_category_title_with_parent->child_title;
+                            $pri_data['SPEC4'] = $item->brand;
+                            $pri_data['SPEC5'] = $item->warranty;
+                            $pri_data['SPEC6'] = $item->code;  // the parent of the variation
+                            // add description
+                            $pri_data['PARTTEXT_SUBFORM']['TEXT'] = $item->spec_text;  // $item->note
+                            array_push($pri_all, $pri_data);
                         }
-                        $is_variation = true;
-                        $pri_data = [
-                            'PARTNAME' => $variation->code,
-                            'PARTDES' => $item->title . ' ' . $variation->title,
-                            'VATPRICE' => (float)$variation->price,
-                            'SPEC1' => $item->code
-                        ];
                     }
                 }
             }
@@ -500,58 +514,77 @@ class Konimbo extends \Priority_Hub {
                     'PARTDES' => $item->title,
                     'VATPRICE' => (float)$item->price
                 ];
+                $pri_data['PRICE'] = (float)$item->cost;
+                $pri_data['SPEC1'] = $item->store_category_title;
+                $pri_data['SPEC2'] = $item->store_category_title_with_parent->parent_title;
+                $pri_data['SPEC3'] = $item->store_category_title_with_parent->child_title;
+                $pri_data['SPEC4'] = $item->brand;
+                $pri_data['SPEC5'] = $item->warranty;
+                // add description
+                $pri_data['PARTTEXT_SUBFORM']['TEXT'] = $item->spec_text;  // $item->note
             }
-            $pri_data['PRICE']                    = (float)$item->cost;
-            $pri_data['SPEC1']                    = $item->store_category_title;
-            $pri_data['SPEC2']                    = $item->store_category_title_with_parent->parent_title;
-            $pri_data['SPEC3']                    = $item->store_category_title_with_parent->child_title;
-            $pri_data['SPEC4']                    = $item->brand;
-            $pri_data['SPEC5']                    = $item->warranty;
-            // add description
-            $pri_data['PARTTEXT_SUBFORM']['TEXT'] = $item->spec_text;  // $item->note
-            // make request
-            $pri_response = $this->makeRequest('POST', 'LOGPART', ['body' => json_encode($pri_data)], $this->get_user());
-            if ($pri_response['code'] > 201) {
-                if ($pri_response['code'] == 409) {
-                    $msg = 'Product ' . $item->code . ' already exists in Priority';
-                    $this->write_custom_log($msg, $this->get_user()->user_login);
-                    array_push($message, $msg);
-                    $is_update_product = $this->get_user_api_config('konimbo_update_product');
-                    if(!empty($is_update_product)) {
-                        $pri_response = $this->makeRequest('PATCH', 'LOGPART(\'' . $pri_data['PARTNAME'] . '\')', ['body' => json_encode($pri_data)], $this->get_user());
-                        if ($pri_response['code'] <= 201) {
-                            $msg = 'Product ' . $item->code . ' update succesfuly';
-                            array_push($message, $msg);
-                        } else {
-                            array_push($message, 'Error while posting to Priority,  code: ' . $pri_response['code'] . ' Message: ' . $pri_response['message']);
-                        }
-                    }
-                    continue;
-                }
-                if ($pri_response['code'] != 409) {
-                    array_push($message,  'Item '.$item->code.' Error code: ' . $pri_response['code'] . ' Message: ' . $pri_response['message']);
-                    $msg = 'Konimbo Error for user ' . get_user_meta($this->get_user()->ID, 'nickname', true);
-                    $this->write_custom_log($msg, $this->get_user()->username);
-                    $subject = $msg;
-                    $this->sendEmailError($subject, $message['message']);
-                    // return $message;
-                }
-            } else {
-                array_push($message, 'Product ' . $item->code . ' posted to Priority');
-                // use WEBSDK to upload the images
-                $imgIndex = 1;
-                foreach ($item->images as $image) {
-                    if ($imgIndex == 1) {
-                        // upload main image
-                    } else {
-                        // upload sub form images
-                    }
-                    $imgIndex++;
-                }
+            array_push($pri_all, $pri_data);
+            if ($pri_data['PARTNAME'] == 'I52b-D-9421A-1') {
+                $stop_here = 'yes';
             }
         }
         // upload image
         // process response
+        //$results = print_r($pri_all, true);
+        //file_put_contents('c:\tmp\filename.txt', print_r($results, true));
+        // Open a file in write mode ('w')
+        /*
+        $fp = fopen('c:\tmp\items.txt', 'w');
+        // Loop through file pointer and a line
+        foreach ($pri_all as $fields) {
+            fputcsv($fp, $fields);
+        }
+        fclose($fp);
+        */
+            // make request
+
+              foreach($pri_all as $pri_data){
+                $pri_response = $this->makeRequest('POST', 'LOGPART', ['body' => json_encode($pri_data)], $this->get_user());
+                if ($pri_response['code'] > 201) {
+                    if ($pri_response['code'] == 409) {
+                        $msg = 'Product ' . $pri_data['PARTNAME'] . ' already exists in Priority';
+                        $this->write_custom_log($msg, $this->get_user()->user_login);
+                        array_push($message, $msg);
+                        $is_update_product = $this->get_user_api_config('konimbo_update_product');
+                        if(!empty($is_update_product)) {
+                            $pri_response = $this->makeRequest('PATCH', 'LOGPART(\'' . $pri_data['PARTNAME'] . '\')', ['body' => json_encode($pri_data)], $this->get_user());
+                            if ($pri_response['code'] <= 201) {
+                                $msg = 'Product ' . $item->code . ' update succesfuly';
+                                array_push($message, $msg);
+                            } else {
+                                array_push($message, 'Error while posting to Priority,  code: ' . $pri_response['code'] . ' Message: ' . $pri_response['message']);
+                            }
+                        }
+                        continue;
+                    }
+                    if ($pri_response['code'] != 409) {
+                        array_push($message,  'Item '.$item->code.' Error code: ' . $pri_response['code'] . ' Message: ' . $pri_response['message']);
+                        $msg = 'Konimbo Error for user ' . get_user_meta($this->get_user()->ID, 'nickname', true);
+                        $this->write_custom_log($msg, $this->get_user()->username);
+                        $subject = $msg;
+                        $this->sendEmailError($subject, $message['message']);
+                        // return $message;
+                    }
+                } else {
+                    array_push($message, 'Product ' . $item->code . ' posted to Priority');
+                    // use WEBSDK to upload the images
+                    $imgIndex = 1;
+                    foreach ($item->images as $image) {
+                        if ($imgIndex == 1) {
+                            // upload main image
+                        } else {
+                            // upload sub form images
+                        }
+                        $imgIndex++;
+                    }
+                }
+            }
+
         return $message;
     }
     function post_receipt_to_priority( $order) {
