@@ -30,6 +30,11 @@ $hub_options = new Priority_Hub('hub','user');
 				<?php _e('shopify', 'p18a'); ?>
 			</a>
 		</li>
+        <li>
+            <a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=magento2'); ?>" class="<?php if($hub_options->get('tab') == 'magento2') echo 'active'; ?>">
+                <?php _e('magento2', 'p18a'); ?>
+            </a>
+        </li>
 		<li>
 			<a href="<?php echo admin_url('admin.php?page=' . PHUB_PLUGIN_ADMIN_URL . '&tab=Amazon'); ?>" class="<?php if($hub_options->get('tab') == 'amazon') echo 'active'; ?>">
 				<?php _e('Amazon', 'p18a'); ?>
@@ -61,6 +66,9 @@ if(isset($_GET['tab'])){
 			break;
         case 'shopify':
             include_once (PHUB_DIR.'shopify/shopify.php');
+            break;
+        case 'magento2':
+            include_once (PHUB_DIR.'magento2/magento2.php');
             break;
         case 'istore':
             include_once (PHUB_DIR.'istore/istore.php');

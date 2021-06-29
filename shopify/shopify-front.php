@@ -1,5 +1,5 @@
 <?php
-include_once (PHUB_DIR.'shopify/shopify-class.php');
+include_once (PHUB_DIR.'shopify/magento2-class.php');
 // shopify options
 echo ('<br><br>');
 ?>

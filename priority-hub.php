@@ -41,8 +41,10 @@ add_action('init', function(){
     include_once (PHUB_INCLUDES_DIR.'front-panel.php');
     include_once (PHUB_DIR.'konimbo/konimbo-class.php');
     include_once (PHUB_DIR.'shopify/shopify-class.php');
+    include_once (PHUB_DIR.'magento2/magento2-class.php');
     include_once (PHUB_DIR.'istore/istore-class.php');
     include_once (PHUB_DIR.'websdk/websdk-class.php');
+
     add_action( 'admin_menu','add_menu_items');
     add_action('admin_init', function () {
         wp_localize_script('p18a-admin-js', 'P18A', [
@@ -60,7 +62,7 @@ add_action('init', function(){
     // web sdk
     add_action('websdk_close_invoices','execute_websdk_cron_close_invoices',1,3);
 
-    $services = ['Shopify','Konimbo','Istore','Paxxi'];
+    $services = ['Shopify','Magento2','Konimbo','Istore','Paxxi'];
 
     restart_Services($services);
 });

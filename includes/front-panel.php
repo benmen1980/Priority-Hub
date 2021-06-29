@@ -65,7 +65,7 @@ function priority_hub_front_panel(){
                 include_once (PHUB_DIR.'konimbo/konimbo.php');
                 break;
             case 'shopify':
-                include_once (PHUB_DIR.'shopify/shopify.php');
+                include_once (PHUB_DIR.'shopify/magento2.php');
                 break;
             case 'istore':
                 include_once (PHUB_DIR.'istore/istore.php');
