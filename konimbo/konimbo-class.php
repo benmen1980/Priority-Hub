@@ -505,7 +505,7 @@ class Konimbo extends \Priority_Hub {
                     }
                 }
             }
-            if (false == $is_variation) {
+            //if (false == $is_variation) {
                 if (empty($item->code)) {
                     continue;
                 }
@@ -522,28 +522,25 @@ class Konimbo extends \Priority_Hub {
                 $pri_data['SPEC5'] = $item->warranty;
                 // add description
                 $pri_data['PARTTEXT_SUBFORM']['TEXT'] = $item->spec_text;  // $item->note
-            }
+            //}
             array_push($pri_all, $pri_data);
-            if ($pri_data['PARTNAME'] == 'I52b-D-9421A-1') {
-                $stop_here = 'yes';
-            }
         }
         // upload image
         // process response
         //$results = print_r($pri_all, true);
         //file_put_contents('c:\tmp\filename.txt', print_r($results, true));
         // Open a file in write mode ('w')
-        /*
-        $fp = fopen('c:\tmp\items.txt', 'w');
-        // Loop through file pointer and a line
-        foreach ($pri_all as $fields) {
-            fputcsv($fp, $fields);
-        }
-        fclose($fp);
-        */
+        $download_as_file =true;
+        if($download_as_file) {
+            $fp = fopen('c:\tmp\items.txt', 'w');
+            // Loop through file pointer and a line
+            foreach ($pri_all as $fields) {
+                fputcsv($fp, $fields);
+            }
+            fclose($fp);
+        }else {
             // make request
-
-              foreach($pri_all as $pri_data){
+            foreach ($pri_all as $pri_data) {
                 $pri_response = $this->makeRequest('POST', 'LOGPART', ['body' => json_encode($pri_data)], $this->get_user());
                 if ($pri_response['code'] > 201) {
                     if ($pri_response['code'] == 409) {
@@ -551,7 +548,7 @@ class Konimbo extends \Priority_Hub {
                         $this->write_custom_log($msg, $this->get_user()->user_login);
                         array_push($message, $msg);
                         $is_update_product = $this->get_user_api_config('konimbo_update_product');
-                        if(!empty($is_update_product)) {
+                        if (!empty($is_update_product)) {
                             $pri_response = $this->makeRequest('PATCH', 'LOGPART(\'' . $pri_data['PARTNAME'] . '\')', ['body' => json_encode($pri_data)], $this->get_user());
                             if ($pri_response['code'] <= 201) {
                                 $msg = 'Product ' . $item->code . ' update succesfuly';
@@ -563,7 +560,7 @@ class Konimbo extends \Priority_Hub {
                         continue;
                     }
                     if ($pri_response['code'] != 409) {
-                        array_push($message,  'Item '.$item->code.' Error code: ' . $pri_response['code'] . ' Message: ' . $pri_response['message']);
+                        array_push($message, 'Item ' . $item->code . ' Error code: ' . $pri_response['code'] . ' Message: ' . $pri_response['message']);
                         $msg = 'Konimbo Error for user ' . get_user_meta($this->get_user()->ID, 'nickname', true);
                         $this->write_custom_log($msg, $this->get_user()->username);
                         $subject = $msg;
@@ -584,6 +581,7 @@ class Konimbo extends \Priority_Hub {
                     }
                 }
             }
+        }
 
         return $message;
     }
