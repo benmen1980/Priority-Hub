@@ -8,18 +8,26 @@ function get_service_name(){
     }
 function get_orders_by_user(  ) {
     $user = $this->get_user();
-    $token = $this->token;
-    $token = 'sr5ra25sgg5hurtyry685ad2sj8nrjaf';  // this is for debug
+    // get the token from the user's configuration
+    $token = $this->get_user_api_config('magento_token');
     $username = $this->get_user_api_config('magento_username');
     $password = $this->get_user_api_config('magento_password');
-    $from_date = urlencode('2021-02-02 06:04:12');
+    //$from_date = urlencode('2021-02-02 06:04:12');
+    $days_back = $this->get_user_api_config('magento_days_back') ?? 1;
+    $status = $this->get_user_api_config('magento_status') ?? 'pending';
+    $stamp = mktime(0 - $days_back*24, 0, 0);
+    $bod = date(DATE_ATOM,$stamp);
+    $from_date = urlencode($bod);
     $selected_fields = 'entity_id,created_at,customer_email,status,billing_address,items,base_shipping_incl_tax,shipping_description,extension_attributes,payment';
-    //$url = '3.249.235.78';
     $url = $this->get_user_api_config('magento_url');
-    $url_addition = 'searchCriteria[filterGroups][1][filters][0][value]=pending&searchCriteria[filterGroups][1][filters][0][conditionType]=neq&searchCriteria[filterGroups][1][filters][0][field]=status&searchCriteria[filterGroups][0][filters][0][field]=updated_at&searchCriteria[filterGroups][0][filters][0][value]='.$from_date.'&fields=items['.$selected_fields.']&searchCriteria[filterGroups][0][filters][0][conditionType]=gteq';
+    $url_addition = 'searchCriteria[filterGroups][1][filters][0][value]='.$status.'&searchCriteria[filterGroups][1][filters][0][conditionType]=neq&searchCriteria[filterGroups][1][filters][0][field]=status&searchCriteria[filterGroups][0][filters][0][field]=updated_at&searchCriteria[filterGroups][0][filters][0][value]='.$from_date.'&fields=items['.$selected_fields.']&searchCriteria[filterGroups][0][filters][0][conditionType]=gteq';
     $url_addition = str_replace('[','%5B',$url_addition);
     $url_addition = str_replace(']','%5D',$url_addition);
     $full_url = 'https://'.$url.'/index.php/rest/V1/orders?'.$url_addition;
+    // debug
+    if ($this->debug) {
+        $full_url = 'https://'.$url.'/index.php/rest/V1/orders/'.$this->order;
+    }
     /* magento curl*/
     $curl = curl_init();
     curl_setopt_array($curl, array(
@@ -46,7 +54,11 @@ function get_orders_by_user(  ) {
     } else {
         $respone_code    = $res['http_code'];
         If ( $respone_code <= 201 ) {
-            $orders = json_decode( $response)->items;
+            if ($this->debug){
+                $orders[] = json_decode( $response);
+            }else{
+                $orders = json_decode( $response)->items;
+            }
             return $orders;
         }
         if ( $respone_code >= 400 && $respone_code <= 499 &&  $respone_code != 404 ) {
@@ -1045,12 +1057,12 @@ function get_token(){
             $body_array = json_decode($response["body"], true);
 
             // Create post object
-            $ret_doc_name = $this->doctype == 'order' ? 'ORDNAME' : 'IVNUM';
+            $ret_doc_name = $this->get_doctype() == 'order' ? 'ORDNAME' : 'IVNUM';
 
             $post_content = json_encode($response,JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             $my_post = array(
                 'post_type' => $this->get_service_name().'_'.$this->get_doctype(),
-                'post_title' => $error_prefix . $doc->name . ' ' . $doc->id,
+                'post_title' => $error_prefix . $doc->billing_address->firstname.' '.$doc->billing_address->lastname . ' ' . $doc->entity_id,
                 'post_content' => $post_content,
                 'post_status' => 'publish',
                 'post_author' => $user->ID,
@@ -1058,7 +1070,7 @@ function get_token(){
             );
             // Insert the post into the database
             $post_id = wp_insert_post($my_post);
-            update_post_meta($post_id, 'order_number', $doc->id);
+            update_post_meta($post_id, 'order_number', $doc->entity_id);
             $index++;
             if ('' == $response['code']) {
                 break;
