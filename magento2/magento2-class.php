@@ -145,8 +145,8 @@ function check_customer_existence($order){
     $user = $this->get_user();
     $response_post_cust = array();
       //check if customer already exist in priority
-      $phone = $order->customer->phone;
-      $email = $order->customer->email;
+      $phone = $order->billing_address->telephone;
+      $email = $order->customer_email;
     //$url_addition = 'CUSTOMERS?$filter=email eq \''.$email.'\' or phone eq \''.$phone.'\'';
     $url_addition = 'CUSTOMERS?$filter=email eq \''.$email.'\'';
     $response = $this->makeRequest('GET', $url_addition,[],$user);
@@ -185,7 +185,8 @@ function post_order_to_priority( $order ) {
 
 
     //check if tax included- and calculate price according to this field
-    $tax_included = $order->taxes_included;
+    //$tax_included = $order->taxes_included;
+    $tax_included = true;
     if($tax_included == 'true'){
         $price_field = 'VATPRICE';
     }
@@ -210,7 +211,7 @@ function post_order_to_priority( $order ) {
     // shipping
     $shipping_ext = $order->extension_attributes->shipping_assignments[0]->shipping->address;
     $shipping_data           = [
-    'NAME'      => $order->shipping_address->first_name.' '.$order->shipping_address->last_name,
+    'NAME'      => $shipping_ext->firstname.' '.$shipping_ext->lastname,
     'EMAIL' => $shipping_ext->email,
     'CUSTDES'   => $shipping_ext->firstname.' '.$shipping_ext->lastname,
     'PHONENUM'  => $shipping_ext->telephone,
@@ -242,6 +243,7 @@ function post_order_to_priority( $order ) {
         }
         $price = (float)isset($item->parent_item) ? $item->parent_item->price_incl_tax : $item->price_incl_tax ;
         $quantity = $item->qty_ordered;
+        $tax_included = true;
         $data['ORDERITEMS_SUBFORM'][] = [
         'PARTNAME' => $partname,
         //'PARTNAME' => '000',
@@ -406,13 +408,13 @@ function post_customer_to_priority( $order ) {
     $user = $this->get_user();
 
     $data        = [
-        'CUSTDES'   => $order->customer->first_name.' '.$order->customer->last_name,
-        'PHONE' => $order->customer->phone,
-        'EMAIL' => $order->customer->email,
-        'ADDRESS'     => $order->customer->default_address->address1,
-        'ADDRESS2'  => $order->customer->default_address->address2,
-        'STATE'     => $order->customer->default_address->country,
-        'ZIP'  => $order->customer->default_address->zip,
+        'CUSTDES'   => $order->billing_address->firstname.' '.$order->billing_address->lastname,
+        'PHONE' => $order->billing_address->telephone,
+        'EMAIL' => $order->customer_email,
+        'ADDRESS'     => $order->billing_address->street[0],
+        'ADDRESS2'  => $order->billing_address->street[1],
+        'STATE'     => $order->billing_address->city,
+        'ZIP'  => $order->billing_address->postcode,
     ];
     $response = $this->makeRequest( 'POST', 'CUSTOMERS', [ 'body' => json_encode( $data ) ], $user );
     //$custname = json_decode( $response['body'])->CUSTNAME;
@@ -560,14 +562,14 @@ function get_payment_details($order){
         );
         $payment_code               = ''; // Magento does not provide credit card data
         $payment_code = $this->get_user_api_config('PAYMENTCODE');
-        if('paypal' == $order->gateway){
+        /*if('paypal' == $order->gateway){
             if(!empty($this->get_user_api_config('PAYPALCODE'))){
                 $payment_code = $this->get_user_api_config('PAYPALCODE');
             }
-        }
+        }*/
         $data = [
             'PAYMENTCODE' => $payment_code,
-            'QPRICE'      => (float) $order->total_price_set->presentment_money->amount,
+            'QPRICE'      => (float) $order->payment->amount_ordered,
             // shopify can handle multi paymnets so this might be modified
             //'PAYACCOUNT'  => '',
             //'PAYCODE'     => '',
@@ -1026,7 +1028,7 @@ function get_token(){
                     break;
             }
 
-            $responses[$doc->id] = $response;
+            $responses[$doc->entity_id] = $response;
 
             $error_prefix = '';
 

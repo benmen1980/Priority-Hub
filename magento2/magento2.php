@@ -34,9 +34,12 @@ if ( isset( $_POST['submit'] ) && isset($_POST['magento2_username'])&& isset($_P
     //$messages = array();
         $token_arr = $magento2->get_token();
        // $magento2->set_token('qf9rkqbjeo0zqp84zs0stpoof6fqixdj');
-    $message = $magento2->post_user_by_username($_POST['magento2_username'], $_POST['magento2_order'], $_POST['magento2_document']);
+    $messages[] = $magento2->post_user_by_username($_POST['magento2_username'], $_POST['magento2_order'], $_POST['magento2_document']);
     }
-    if(isset($message['message'])) echo $message['message'];
+    foreach ($messages as $message) {
+        if(isset($message['message'])) echo $message['message'];
+    }
+
 }
 ?>
 <hr>
