@@ -251,7 +251,7 @@ class Paxxi extends \Priority_Hub {
         return $result;
     }
 	function get_address_from_google_maps($full_address) {
-		$key = 'AIzaSyAID-aRQsyq3aZVphk34F1cRY8fdDEkDu8';
+		$key = $this->get_user_api_config('google_api_key');
 		$curl = curl_init();
 		curl_setopt_array( $curl, array(
 			CURLOPT_URL            => 'https://maps.googleapis.com/maps/api/geocode/json?language=iw&address='.urlencode($full_address).'&key='.$key,
