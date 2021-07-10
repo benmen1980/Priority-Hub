@@ -157,12 +157,15 @@ class Paxxi extends \Priority_Hub {
     function createPackageQuery($order)
     {
         // receiver name is static per Priority server.
+
+	    $insurance_id = '6'; // what are the options ?
+	    $overnight = '1';    // what are the options ?
         return $orderData = [
             'is_api'   => '1',
             'packages' => [
                 [
-                    'insurance_id' => '6',
-                    'overnight' => '1',
+                    'insurance_id' => $insurance_id,
+                    'overnight' => $overnight,
                     'receiver'    => [
                         'city_code'    => (string)$order->city_code,
                         'house'        => $order->street_number,
