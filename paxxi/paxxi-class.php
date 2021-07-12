@@ -30,7 +30,7 @@ class Paxxi extends \Priority_Hub {
     function get_order_from_priority(){
         $stamp = mktime(0 , 0, 0);
         $bod = date(DATE_ATOM,$stamp);
-        $url_addition = '?$filter=CURDATE ge '.urlencode($bod).'&$select=ORDNAME,CURDATE&$expand=SHIPTO2_SUBFORM';
+        $url_addition = '?$top=1&$filter=CURDATE ge '.urlencode($bod).'&$select=ORDNAME,CURDATE&$expand=SHIPTO2_SUBFORM';
         $response = $this->makeRequest( 'GET', 'ORDERS'.$url_addition, [ ],$this->user);
         $paxxi_orders = [];
         if($response['code']<=201){
@@ -105,10 +105,20 @@ class Paxxi extends \Priority_Hub {
         $pri_city = $order->SHIPTO2_SUBFORM->STATE;
         $pri_street = $order->SHIPTO2_SUBFORM->ADDRESS;
         $pri_street_number = $order->SHIPTO2_SUBFORM->ADDRESS2;
+        $debug = true;
+        if($debug == true){
+            $pri_city = 'תל אביב';
+            $pri_street = 'בוגרשוב';
+            $pri_street_number = '41';
+        }
         $pri_full_address = urlencode($pri_street.' '.$pri_city);
         $url = $base_url.$pri_full_address;
        $res = wp_remote_request($url);
-       if($res['code']<=201){
+       if(is_wp_error($res)){
+           $order->paxxi_is_valid_address = false;
+           return $order;
+       }
+       if($res['response']['code']<=201){
            $addresses = json_decode($res['body'])->data;
            if(sizeof($addresses->full_search) > 0){
                $codes = $addresses->full_search[0];
@@ -134,7 +144,8 @@ class Paxxi extends \Priority_Hub {
         ksort($input_array, SORT_STRING);
         $jsonInput =json_encode($input_array, JSON_UNESCAPED_UNICODE);
         $hash = hash_hmac('sha256', $jsonInput, $privateKey);
-        $createPackageUrl = 'https://paxxi.info/api/v3/customer/packages';
+        //$createPackageUrl = 'https://paxxi.info/api/v3/customer/packages';
+        $createPackageUrl = 'https://paxxi.net/api/v3/customer/packages';
         $additional_headers = [
             "X-Authorization: $keys->public_key",
            // "X-Authorization: 37b17a22c5f17d5d55ead992175f1fdd",
@@ -146,11 +157,15 @@ class Paxxi extends \Priority_Hub {
     }
     function loginToTest()
     {
-        $url = 'https://paxxi.info/api/v3/auth/login';
+        //$url = 'https://paxxi.info/api/v3/auth/login';
+        $url = 'https://paxxi.net/api/v3/auth/login';
+        $phone_prefix = $this->get_user_api_config('paxxi_prefix');
+        $phone_number = $this->get_user_api_config('paxxi_phone');
+        $password = $this->get_user_api_config('paxxi_password');
         $data = [
-            'phone_prefix' => '050',
-            'phone_number' => '0123129',
-            'password'     => '123qwe',
+            'phone_prefix' => $phone_prefix,
+            'phone_number' => $phone_number,
+            'password'     => $password,
             'is_api'       => '1'
         ];
         return $this->sendCurl($url, $data, [], true);
@@ -241,5 +256,45 @@ class Paxxi extends \Priority_Hub {
         curl_close($curl);
 
         return $result;
+    }
+    public function generate_hub_form(){
+        $user = wp_get_current_user();
+        $user_id                = get_current_user_id();
+        $username =  wp_get_current_user()->user_login;
+        ?>
+        <form action="" method="post" class="sync_priority_form">
+            <input type="hidden" name="<?php echo $this->get_service_name_lower(); ?>>_action" value="sync_<?php echo $this->get_service_name_lower(); ?>">
+            <div class="checkbox_wrapper">
+                <input type="checkbox" id="generalpart" name="<?php echo $this->get_service_name_lower(); ?>_generalpart" value="generalpart">
+                <label for="generalpart"> <?php _e('Post general item','p18a');?></label><br>
+            </div>
+            <label for="username"><?php _e('User Name:','p18a');?></label>
+            <?php if(is_admin() ):?>
+                <input type="text" id="username" name="<?php echo $this->get_service_name_lower(); ?>_username">
+            <?php else:?>
+                <input id="username" name="<?php echo $this->get_service_name_lower(); ?>_username" type="text"  value="<?php echo $username; ?>" readonly="reaonly">
+            <?php endif;?>
+            <label for="<?php echo $this->get_service_name_lower(); ?>_document">
+                <?php _e('Select priority Entity target:','p18a');?>
+            </label>
+            <select name="<?php echo $this->get_service_name_lower(); ?>_document" id="<?php echo $this->get_service_name_lower(); ?>_document">
+                <option value="order"><?php _e('Order','p18a');?></option>
+                <option value="ainvoice"><?php _e('Ainvoice','p18a');?></option>
+                <option value="otc"><?php _e('Over The counter invoice','p18a');?></option>
+                <option value="invoice"><?php _e('Sales Invoice','p18a');?></option>
+                <option value="shipment"><?php _e('Shipment','p18a');?></option>
+            </select>
+            <h6>
+                Post single Order, if you keep it empty, the system will post all orders from last sync date as defined in the user page
+
+            </h6>
+            <label for="<?php echo $this->get_service_name_lower(); ?>_order">
+                <?php _e('Order :','p18a');?>
+            </label>
+            <input type="text" id="<?php echo $this->get_service_name_lower(); ?>_order" name="<?php echo $this->get_service_name_lower(); ?>_order" value="" >
+            <input name="submit" type="submit"  id="submit" class="button button-primary" value="<?php _e('Execute API','p18a');?>" />
+        </form>
+
+        <?php
     }
 }

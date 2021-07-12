@@ -89,16 +89,28 @@ class Konimbo extends \Priority_Hub {
 		];
 		$data['ORDERSCONT_SUBFORM'][] = $customer_data;
 		// shipping
-		$shipping_data           = [
+
+        $full_address = $order->address;
+        $add = explode(' ',$full_address);
+        $str = $add[0];
+        preg_match_all("#\d+#", $str, $matches);
+        $str = preg_replace("!\d+!", "#SPEC#", $str);
+        $street_number =   $matches[0][0];
+        $city = $add[1].' '.$add[2];
+        $street = explode($street_number,$add[0])[0];
+        $new_address =  $street.' '.$city;
+
+
+        $shipping_data           = [
 			'NAME'      => $order->name,
 			'CUSTDES'   => $order->name,
 			'PHONENUM'  => $order->phone ?? '',
 			//	'EMAIL'     => $order->email,
 			//	'CELLPHONE' => $order->phone,
-            'STATE'     => $order->address->city ?? '',
-			'ADDRESS'   => $order->address->street ?? '',
-            'ADDRESS2'  => $order->address->street_number ?? '',
-            'ADDRESS3'  => $order->address->apartment ?? '',
+            'STATE'     => $order->address->city ?? $city,
+			'ADDRESS'   => $order->address->street ?? $street,
+            'ADDRESS2'  => $order->address->street_number ?? $street_number,
+            'ADDRESS3'  => $order->address->apartment ?? $order->address,
             'ZIP'       => $order->address->zip_code ?? '',
             'ADDRESSA'  => $order->address->post_office_box ?? ''
 
@@ -428,8 +440,15 @@ class Konimbo extends \Priority_Hub {
         return $message;
     }
     function post_items_to_priority_by_page($sku = null){
+        $user = $this->get_user();
+
         // this function pull the items by all pages
         $message['message'] = 'Nothing happen yet...';
+
+        //
+        $filename = 'c:\tmp\\'.$user->user_login.'-item3.txt';
+        $handle = fopen($filename, "w");
+
         // get the token from config
         $productToken = $this->get_user_api_config('konimbo_product_token');
         // get last sync time or days back
@@ -461,7 +480,70 @@ class Konimbo extends \Priority_Hub {
             }
             if($response['response']['code']<=201){
                 $res_data = json_decode($response['body']);
-                $data = array_merge($data,$res_data);
+                //$data = array_merge($data,$res_data);
+                foreach($res_data as $item) {
+                    $pri_data = [];
+                    $is_variation = false;
+                    if (!empty($item->inventory)) {
+                        $variations = $item->inventory;
+                        if (!empty($variations)) {
+                            foreach ($variations as $variation) {
+                                if(!empty($variation->code)){
+                                if (!($variation->title == 'כמות' || $variation->code == 'Inventory')) {
+                                    if (empty($variation->code)) {
+                                        continue;
+                                    }
+                                    $is_variation = true;
+                                    $pri_data = [
+                                        'PARTNAME' => $variation->code,
+                                        'PARTDES' => $item->title . ' ' . $variation->title,
+                                        'VATPRICE' => (float)$variation->price,
+                                        'SPEC1' => $item->code
+                                    ];
+                                    $pri_data['SPEC2'] = $item->store_category_title_with_parent->parent_title;
+                                    $pri_data['SPEC3'] = $item->store_category_title_with_parent->child_title;
+                                    $pri_data['SPEC4'] = $item->brand;
+                                    $pri_data['SPEC5'] = $item->warranty;
+                                    $pri_data['SPEC6'] = $item->code;  // the parent of the variation
+                                    // add description
+                                    $pri_data['PARTTEXT_SUBFORM']['TEXT'] = $item->spec_text;  // $item->note
+                                   // array_push($pri_all, $pri_data);
+                                }
+                                }
+                            }
+                        }
+                    }
+                    //if (false == $is_variation) {
+                    if (empty($item->code)) {
+                        continue;
+                    }
+                    $pri_data = [
+                        'PARTNAME' => $item->code,
+                        'PARTDES' => $item->title,
+                        'VATPRICE' => (float)$item->price
+                    ];
+                    $pri_data['PRICE'] = (float)$item->cost;
+                    $pri_data['SPEC1'] = $item->store_category_title;
+                    $pri_data['SPEC2'] = $item->store_category_title_with_parent->parent_title;
+                    $pri_data['SPEC3'] = $item->store_category_title_with_parent->child_title;
+                    $pri_data['SPEC4'] = $item->brand;
+                    $pri_data['SPEC5'] = $item->warranty;
+                    // add description
+                    $pri_data['PARTTEXT_SUBFORM']['TEXT'] = $item->spec_text;  // $item->note
+                    //}
+                    //array_push($pri_all, $pri_data);
+                    $output  = $pri_data['PARTNAME'].",";
+                    $output .= $pri_data['PARTDES'].",";
+                    $output .= $pri_data['VATPRICE'].",";
+                    $output .= $pri_data['PRICE'].",";
+                    $output .= $pri_data['SPEC1'].",";
+                    $output .= $pri_data['SPEC2'].",";
+                    $output .= $pri_data['SPEC3'].",";
+                    $output .= $pri_data['SPEC4'].",";
+                    $output .= $pri_data['SPEC5']."\r\n";
+
+                    fwrite($handle, $output);
+                }
             }elseif($response['response']['code']==404){
                 // do nothing
                 $res_data=[];
@@ -475,7 +557,8 @@ class Konimbo extends \Priority_Hub {
         }
         $message['message'] = 'End process products...';
         $pri_all = [];
-        foreach($data as $item) {
+       /*
+         foreach($data as $item) {
             $pri_data = [];
             $is_variation = false;
             if (!empty($item->inventory)) {
@@ -525,6 +608,7 @@ class Konimbo extends \Priority_Hub {
             //}
             array_push($pri_all, $pri_data);
         }
+         */
         // upload image
         // process response
         //$results = print_r($pri_all, true);
@@ -532,12 +616,29 @@ class Konimbo extends \Priority_Hub {
         // Open a file in write mode ('w')
         $download_as_file =true;
         if($download_as_file) {
-            $fp = fopen('c:\tmp\items.txt', 'w');
+           /*
+            $fp = fopen('c:\tmp\or-pc-items.txt', 'w');
             // Loop through file pointer and a line
             foreach ($pri_all as $fields) {
                 fputcsv($fp, $fields);
             }
+
             fclose($fp);
+
+           */
+        /*
+            $filecontent = $pri_all;
+            $filename = 'c:\tmp\or-pc-item3.txt';
+            $handle = fopen($filename, "w");
+
+            foreach ($filecontent as $addline)
+            {
+
+                    $output = $addline['PARTNAME']."\r\n";
+                    fwrite($handle, $output);
+
+            }
+        */
         }else {
             // make request
             foreach ($pri_all as $pri_data) {
