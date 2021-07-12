@@ -30,7 +30,7 @@ class Paxxi extends \Priority_Hub {
     function get_order_from_priority(){
         $stamp = mktime(0 , 0, 0);
         $bod = date(DATE_ATOM,$stamp);
-        $url_addition = '?$top=1&$filter=CURDATE ge '.urlencode($bod).'&$select=ORDNAME,CURDATE&$expand=SHIPTO2_SUBFORM';
+        $url_addition = '?$filter=CURDATE ge '.urlencode($bod).'&$select=ORDNAME,CURDATE&$expand=SHIPTO2_SUBFORM';
         $response = $this->makeRequest( 'GET', 'ORDERS'.$url_addition, [ ],$this->user);
         $paxxi_orders = [];
         if($response['code']<=201){
@@ -100,33 +100,23 @@ class Paxxi extends \Priority_Hub {
         }
     }
     function check_address($order){
-        $order->paxxi_is_valid_address = false;
-        $base_url = 'https://paxxi.net/autocomplete/full_search?q=';
-        $pri_city = $order->SHIPTO2_SUBFORM->STATE;
-        $pri_street = $order->SHIPTO2_SUBFORM->ADDRESS;
-        $pri_street_number = $order->SHIPTO2_SUBFORM->ADDRESS2;
-        $debug = true;
-        if($debug == true){
-            $pri_city = 'תל אביב';
-            $pri_street = 'בוגרשוב';
-            $pri_street_number = '41';
-        }
-        $pri_full_address = urlencode($pri_street.' '.$pri_city);
-        $url = $base_url.$pri_full_address;
+       $order->paxxi_is_valid_address = false;
+       $base_url = 'https://paxxi.net/autocomplete/full_search?q=';
+       $full_priority_address = $order->SHIPTO2_SUBFORM->STATE.' '.$order->SHIPTO2_SUBFORM->ADDRESS.' '.$order->SHIPTO2_SUBFORM->ADDRESS2.' '.
+                                 $order->SHIPTO2_SUBFORM->ADDRESS3;
+       // full Priority address must have a filter by Priority implementation
+	   $google_address = $this->get_address_from_google_maps($full_priority_address);
+       $order->street_number = $google_address['street_number'];
+	   $pri_full_address = $google_address['street'].' '.$google_address['city'];
+       $url = $base_url.$pri_full_address;
        $res = wp_remote_request($url);
-       if(is_wp_error($res)){
-           $order->paxxi_is_valid_address = false;
-           return $order;
-       }
-       if($res['response']['code']<=201){
+       if($res['code']<=201){
            $addresses = json_decode($res['body'])->data;
            if(sizeof($addresses->full_search) > 0){
                $codes = $addresses->full_search[0];
-               $street_code = $codes->street_code;
-               $city_code = $codes->city_code;
                $order->paxxi_is_valid_address = true;
-               $order->city_code = $city_code;
-               $order->street_code = $street_code;
+               $order->city_code = $codes->city_code;
+               $order->street_code = $codes->street_code;
            }
        }
 
@@ -144,11 +134,9 @@ class Paxxi extends \Priority_Hub {
         ksort($input_array, SORT_STRING);
         $jsonInput =json_encode($input_array, JSON_UNESCAPED_UNICODE);
         $hash = hash_hmac('sha256', $jsonInput, $privateKey);
-        //$createPackageUrl = 'https://paxxi.info/api/v3/customer/packages';
         $createPackageUrl = 'https://paxxi.net/api/v3/customer/packages';
         $additional_headers = [
             "X-Authorization: $keys->public_key",
-           // "X-Authorization: 37b17a22c5f17d5d55ead992175f1fdd",
             "X-Authorization-Hash: $hash"
         ];
         $result = $this->sendCurl($createPackageUrl, $input_array, $additional_headers, true);
@@ -173,19 +161,28 @@ class Paxxi extends \Priority_Hub {
     function createPackageQuery($order)
     {
         // receiver name is static per Priority server.
+
+	    $insurance_id = '6'; // what are the options ?
+	    $overnight = '1';    // what are the options ?
         return $orderData = [
             'is_api'   => '1',
             'packages' => [
                 [
-                    'insurance_id' => '6',
-                    'overnight' => '1',
+                    'insurance_id' => $insurance_id,
+                    'overnight' => $overnight,
                     'receiver'    => [
                         'city_code'    => (string)$order->city_code,
-                        'house'        => '2',
-                        'name'         => 'name',
+                        'house'        => $order->street_number,
+                        'name'         => $order->SHIPTO2_SUBFORM->CUSTDES,
                         'phone_number' => substr($order->SHIPTO2_SUBFORM->PHONENUM,3,7),
                         'phone_prefix' => substr($order->SHIPTO2_SUBFORM->PHONENUM,0,3),
-                        'street_code'  => (string)$order->street_code
+                        'street_code'  => (string)$order->street_code,
+                        'notes' => $order->SHIPTO2_SUBFORM->CUSTDES.PHP_EOL.
+                                   $order->SHIPTO2_SUBFORM->STATE.PHP_EOL.
+                                   $order->SHIPTO2_SUBFORM->ADDRESS.PHP_EOL.
+                                   $order->SHIPTO2_SUBFORM->ADDRESS2.PHP_EOL.
+                                   $order->SHIPTO2_SUBFORM->ADDRESS3.PHP_EOL.
+                                   $order->SHIPTO2_SUBFORM->PHONENUM.PHP_EOL
                     ],
                     'sender'  => [
                         'city_code'    => '5000',
@@ -195,7 +192,7 @@ class Paxxi extends \Priority_Hub {
                         'phone_prefix' => substr($order->SHIPTO2_SUBFORM->PHONENUM,0,3),
                         'street_code'  => '903',
                     ],
-                  //  'notes' => 'הערות כלליות',
+
 
                     'type_id' => '1',
                     'urgency_id' => '3',
@@ -297,4 +294,45 @@ class Paxxi extends \Priority_Hub {
 
         <?php
     }
+	function get_address_from_google_maps($full_address) {
+		$key = $this->get_user_api_config('google_api_key');
+		$curl = curl_init();
+		curl_setopt_array( $curl, array(
+			CURLOPT_URL            => 'https://maps.googleapis.com/maps/api/geocode/json?language=iw&address='.urlencode($full_address).'&key='.$key,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_ENCODING       => '',
+			CURLOPT_MAXREDIRS      => 10,
+			CURLOPT_TIMEOUT        => 0,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+			CURLOPT_CUSTOMREQUEST  => 'GET',
+		) );
+
+		$response = curl_exec( $curl );
+
+		curl_close( $curl );
+		$data = json_decode( $response );
+		$components = $data->results[0]->address_components;
+		foreach($components as $types){
+			if($types->types[0]=='route'){
+				$words = ['משעול','סימטת','שדרות'];
+				$str_arry = explode(' ',$types->long_name);
+				$street = in_array($str_arry[0],$words)  ? $str_arry[1].' '.$str_arry[2] : $types->long_name;
+			}
+			if($types->types[0]=='locality'){
+				$city = $types->long_name;
+			}
+			if($types->types[0]=='street_number'){
+				$street_number = $types->long_name;
+			}
+
+		};
+		return [
+			'status'        => (is_null($street) || is_null($city) || is_null($street_number) ? 'DATA_MISSING'  : $data->status),
+			'city'          => $city,
+			'street'        => $street,
+			'street_number' => $street_number,
+			'response'      => $data
+		];
+	}
 }
