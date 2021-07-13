@@ -20,18 +20,14 @@ function get_orders_by_user(  ) {
     $from_date = urlencode($bod);
     $selected_fields = 'entity_id,created_at,customer_email,status,billing_address,items,base_shipping_incl_tax,shipping_description,extension_attributes,payment';
     $url = $this->get_user_api_config('magento_url');
-    $url_addition = 'searchCriteria[filterGroups][1][filters][0][value]='.$status.'&searchCriteria[filterGroups][1][filters][0][conditionType]=neq&searchCriteria[filterGroups][1][filters][0][field]=status&searchCriteria[filterGroups][0][filters][0][field]=updated_at&searchCriteria[filterGroups][0][filters][0][value]='.$from_date.'&fields=items['.$selected_fields.']&searchCriteria[filterGroups][0][filters][0][conditionType]=gteq';
-    $url_addition = str_replace('[','%5B',$url_addition);
-    $url_addition = str_replace(']','%5D',$url_addition);
-    $full_url = 'https://'.$url.'/index.php/rest/V1/orders?'.$url_addition;
     // debug
     if ($this->debug) {
         $full_url = 'https://'.$url.'/index.php/rest/V1/orders/'.$this->order;
     }
-    /* magento curl*/
+    $selected_fields = 'entity_id,created_at,customer_email,status,billing_address,items,base_shipping_incl_tax,shipping_description,extension_attributes,payment';
     $curl = curl_init();
     curl_setopt_array($curl, array(
-        CURLOPT_URL => $full_url,
+        CURLOPT_URL => 'https://'.$url.'/index.php/rest/V1/orders?searchCriteria%5BfilterGroups%5D%5B1%5D%5Bfilters%5D%5B0%5D%5Bvalue%5D='.$status.'&searchCriteria%5BfilterGroups%5D%5B1%5D%5Bfilters%5D%5B0%5D%5BconditionType%5D=eq&searchCriteria%5BfilterGroups%5D%5B1%5D%5Bfilters%5D%5B0%5D%5Bfield%5D=status&searchCriteria%5BfilterGroups%5D%5B0%5D%5Bfilters%5D%5B0%5D%5Bfield%5D=updated_at&searchCriteria%5BfilterGroups%5D%5B0%5D%5Bfilters%5D%5B0%5D%5Bvalue%5D='.$from_date.'&fields=items%5B'.$selected_fields.'%5D&searchCriteria%5BfilterGroups%5D%5B0%5D%5Bfilters%5D%5B0%5D%5BconditionType%5D=gteq',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -54,7 +50,7 @@ function get_orders_by_user(  ) {
     } else {
         $respone_code    = $res['http_code'];
         If ( $respone_code <= 201 ) {
-            if ($this->debug){
+            if ($this->debug===true){
                 $orders[] = json_decode( $response);
             }else{
                 $orders = json_decode( $response)->items;
@@ -217,30 +213,33 @@ function post_order_to_priority( $order ) {
     $customer_data                = [
         'PHONE' => $order->billing_address->telephone,
         'EMAIL' => $order->billing_address->email,
-        'ADRS'  => $order->billing_address->city.' '.$order->billing_address->street[0].' '.$order->billing_address->street[1],
+        'ADRS'  => $order->billing_address->city.' '.($order->billing_address->street[0] ?? '').' '.($order->billing_address->street[1] ?? ''),
     ];
     $data['ORDERSCONT_SUBFORM'][] = $customer_data;
     // shipping
-    $shipping_ext = $order->extension_attributes->shipping_assignments[0]->shipping->address;
-    $shipping_data           = [
-    'NAME'      => $shipping_ext->firstname.' '.$shipping_ext->lastname,
-    'EMAIL' => $shipping_ext->email,
-    'CUSTDES'   => $shipping_ext->firstname.' '.$shipping_ext->lastname,
-    'PHONENUM'  => $shipping_ext->telephone,
-    'ADDRESS'   => $shipping_ext->street[0],
-    'ADDRESS2'  => $shipping_ext->street[1],
-    //'ADDRESS3'   => $order->shipping_address->province, //.' '.$order->shipping_address->country,
-    'ZIP'       => $shipping_ext->postcode,
-    'STATE'     => $shipping_ext->city
+    $shipping_ext = $order->extension_attributes->shipping_assignments[0]->shipping->address ?? '';
+    if(is_object($shipping_ext)){
+    $shipping_data = [
+        'NAME' => $shipping_ext->firstname ?? '' . ' ' . $shipping_ext->lastname ?? '',
+        'EMAIL' => $shipping_ext->email ?? '',
+        'CUSTDES' => $shipping_ext->firstname ?? '' . ' ' . $shipping_ext->lastname ?? '',
+        'PHONENUM' => $shipping_ext->telephone ?? '',
+        'ADDRESS' => $shipping_ext->street[0] ?? '',
+        'ADDRESS2' => $shipping_ext->street[1] ?? '',
+        //'ADDRESS3'   => $order->shipping_address->province, //.' '.$order->shipping_address->country,
+        'ZIP' => $shipping_ext->postcode ?? '',
+        'STATE' => $shipping_ext->city ?? ''
     ];
     $data['SHIPTO2_SUBFORM'] = $shipping_data;
+    }
+
 
     // get ordered items
     foreach ( $order->items as $item ) {
         $partname = $item->sku;
         // debug
-        if (!empty($this->generalpart)) {
-        $partname = '000';
+        if (!empty($this->get_user_api_config('general_part'))) {
+            $partname = $this->get_user_api_config('general_part');
         }
         $second_code = isset($item->second_code) ? $item->second_code : '';
         $unit_price = isset($item->price_incl_tax) ? (float) $item->price_incl_tax : 0.0;
@@ -260,10 +259,9 @@ function post_order_to_priority( $order ) {
         'PARTNAME' => $partname,
         //'PARTNAME' => '000',
         'TQUANT'   => (int) $item->qty_ordered,
-        $price_field => (($tax_included) ? ((float)$price * (float)$quantity - $discount_amount) : (float)$price - ($discount_amount / (float)$quantity))
-        
+        $price_field => (($tax_included) ? ((float)$price * (float)$quantity - $discount_amount) : (float)$price - ($discount_amount / (float)$quantity)),
         //'REMARK1'  =>$second_code,
-        //'DUEDATE' => date('Y-m-d', strtotime($campaign_duedate)),
+        'DUEDATE' => date('Y-m-d'),
         ];
     }
     // get discounts as items
@@ -277,12 +275,13 @@ function post_order_to_priority( $order ) {
     // shipping rate
     $shipping = $order->base_shipping_incl_tax;
     if($shipping>0){
-        $shipping_sku = (($this->get_user_api_config('SHIPPING_PARTNAME')) ? $this->get_user_api_config('SHIPPING_PARTNAME') : '000');
+        $shipping_sku = $this->get_user_api_config('SHIPPING_PARTNAME') ??  '000';
         $data['ORDERITEMS_SUBFORM'][] = [
             'PARTNAME' => $shipping_sku,
             'PDES'     => $order->shipping_description,
             'TQUANT'   => (int)1,
-            $price_field => (float)$shipping
+            $price_field => (float)$shipping,
+            'DUEDATE' => date('Y-m-d'),
         ];
     }
     $data['PAYMENTDEF_SUBFORM'] = $this->get_payment_details($order);
@@ -423,8 +422,8 @@ function post_customer_to_priority( $order ) {
         'CUSTDES'   => $order->billing_address->firstname.' '.$order->billing_address->lastname,
         'PHONE' => $order->billing_address->telephone,
         'EMAIL' => $order->customer_email,
-        'ADDRESS'     => $order->billing_address->street[0],
-        'ADDRESS2'  => $order->billing_address->street[1],
+        'ADDRESS'     => $order->billing_address->street[0] ?? '',
+        'ADDRESS2'  => $order->billing_address->street[1] ?? '',
         'STATE'     => $order->billing_address->city,
         'ZIP'  => $order->billing_address->postcode,
     ];
@@ -608,7 +607,7 @@ function set_inventory_level_to_location($location_id,$partname){
         $items = json_decode($response['body'])->value;
     }else{
         $error_message = $response['body'];
-        $this->sendEmailError('Shopify Error while sync inventory',$error_message);
+        $this->sendEmailError('Magento Error while sync inventory',$error_message);
         return $error_message;
     }
     // get from Shopify
@@ -918,7 +917,7 @@ function set_inventory_level2($partname){
             $items = json_decode($response['body'])->value;
         }else{
             $error_message = $response['body'];
-            $this->sendEmailError('Shopify Error while sync inventory',$error_message);
+            $this->sendEmailError('Magento Error while sync inventory',$error_message);
             return $error_message;
         }
         // loop over items
@@ -1013,7 +1012,7 @@ function get_token(){
             // The Query
             $the_query = new WP_Query($args);
             // The Loop
-            if ($the_query->have_posts() && !$this->debug) {
+            if ($the_query->have_posts() && ($this->get_user_api_config('allow_duplicate') != true)) {
                 continue;
             }
             switch ($this->get_doctype()) {
@@ -1060,13 +1059,14 @@ function get_token(){
             $ret_doc_name = $this->get_doctype() == 'order' ? 'ORDNAME' : 'IVNUM';
 
             $post_content = json_encode($response,JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            $ordname = array_key_exists($ret_doc_name,$body_array) ? array($body_array[$ret_doc_name]) : '';
             $my_post = array(
                 'post_type' => $this->get_service_name().'_'.$this->get_doctype(),
                 'post_title' => $error_prefix . $doc->billing_address->firstname.' '.$doc->billing_address->lastname . ' ' . $doc->entity_id,
                 'post_content' => $post_content,
                 'post_status' => 'publish',
                 'post_author' => $user->ID,
-                'tags_input' => array($body_array[$ret_doc_name])
+                'tags_input' => $ordname
             );
             // Insert the post into the database
             $post_id = wp_insert_post($my_post);
@@ -1078,4 +1078,8 @@ function get_token(){
         }
         return $responses;
     }
+    function get_orders_by_status_update(){
+
+    }
+
 }

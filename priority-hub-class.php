@@ -239,7 +239,7 @@ class Priority_Hub
             // The Query
             $the_query = new WP_Query($args);
             // The Loop
-            if ($the_query->have_posts() && !$this->debug) {
+            if ($the_query->have_posts() && !$this->get_user_api_config('allow_duplicate')) {
                 continue;
             }
             switch ($this->get_doctype()) {
@@ -322,29 +322,29 @@ class Priority_Hub
                     $response_code = (int) $response['code'];
                     $response_body = json_decode( $response['body'] );
                     $order_args =  $response['args'] ;
-                    $ordernumber =  json_decode($order_args['body'])->BOOKNUM;
+                    $ordernumber =  json_decode($order_args['body'])->BOOKNUM ?? '';
                     if ( $response_code >= 200 & $response_code <= 201 ) {
                         $doc = $response_body->IVNUM ?? $response_body->ORDNAME;
                         $message .=  'New Priority  '.$this->get_doctype().' '. $doc .' places successfully for '.$this->get_service_name().' order '.$response_body->BOOKNUM.'<br>';
                     }
                     if ( $response_code >= 400 && $response_code < 500 ) {
                         $is_error = true;
-                        $message .= 'Error while posting '.$this->get_doctype().' '. $ordernumber . '<br>';
-                        $interface_errors = $response_body->FORM->InterfaceErrors;
+                        $message .= 'Error while posting '.$this->get_doctype().' '. $ordernumber . PHP_EOL;
+                        $interface_errors = $response_body->FORM->InterfaceErrors ?? 'unknown error';
                         if ( is_array( $interface_errors ) ) {
                             foreach ( $interface_errors as $err_line ) {
                                 if ( is_object( $err_line ) ) {
-                                    $message .=  $err_line->text . '<br>';
+                                    $message .=  $err_line->text .PHP_EOL;
                                 }
                             }
                         }else {
-                            $message .= $interface_errors->text . '<br>';
+                            $message .= $interface_errors->text ?? 'unknown error' . PHP_EOL;
                         }
                     }elseif(500 == $response_code || 0 == $response_code){
-                        $message .= 'Server Error while posting order ' . $ordernumber .' '.$response['message'].'<br>';
+                        $message .= 'Server Error while posting order ' . $ordernumber .' '.$response['message'].PHP_EOL;
                     }
                 }elseif(isset($response['response']['code'])){
-                    $message .= $response['body'].'<br>';
+                    $message .= $response['body'].PHP_EOL;
                 }
             }
             $response3[$user_id] = array("message" => $message,"is_error" => $is_error);
